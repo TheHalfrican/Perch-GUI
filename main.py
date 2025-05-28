@@ -1,9 +1,11 @@
 import sys
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication
+from Launcher.DB.database import initialize_db
+from Launcher.Views.PHMainWindowView import PerchLauncher
 
-app = QApplication(sys.argv)
-
-label = QLabel("Hello from Perch GUI!")
-label.show()
-
-sys.exit(app.exec())
+if __name__ == "__main__":
+    initialize_db()
+    app = QApplication(sys.argv)
+    window = PerchLauncher()
+    window.show()
+    sys.exit(app.exec())
