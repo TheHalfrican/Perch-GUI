@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 @dataclass
-class Game:
+class PHGameModel:
     id: int
     title: str
     file_path: str

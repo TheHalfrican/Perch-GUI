@@ -2,19 +2,19 @@ import sqlite3
 import subprocess
 import configparser
 from pathlib import Path
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFileDialog, QMenu
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFileDialog, QMenu, QMessageBox
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt
 
-from Launcher.DB.database import DB_PATH
-from Launcher.Utils.images import get_placeholder_pixmap
+from Launcher.DB.PHDatabase import DB_PATH
+from Launcher.Utils.PHImages import get_placeholder_pixmap
 
 # Load Xenia path from config.ini
 config = configparser.ConfigParser()
 config.read(Path(__file__).parents[2] / 'config.ini')
 XENIA_PATH = Path(config.get('paths', 'xenia_path'))
 
-class GameWidget(QWidget):
+class GameWidgetView(QWidget):
     def __init__(self, game_id: int, title: str, cover_path: str | None = None, parent=None):
         super().__init__(parent)
         self.game_id = game_id
@@ -49,9 +49,11 @@ class GameWidget(QWidget):
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
-        action = menu.addAction("Set Cover Image...")
+        set_cover_action = menu.addAction("Set Cover Image...")
+        remove_action = menu.addAction("Remove Game from Library")
         selected = menu.exec(event.globalPos())
-        if selected == action:
+
+        if selected == set_cover_action:
             img_path, _ = QFileDialog.getOpenFileName(
                 self, "Choose Cover Image", "", "Image Files (*.png *.jpg *.bmp)"
             )
@@ -65,6 +67,21 @@ class GameWidget(QWidget):
                 conn.commit()
                 conn.close()
                 self.set_cover(img_path)
+
+        elif selected == remove_action:
+            confirm = QMessageBox.question(
+                self, "Confirm Remove",
+                f"Remove '{self.title}' from library?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if confirm == QMessageBox.Yes:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM games WHERE id = ?", (self.game_id,))
+                conn.commit()
+                conn.close()
+                # Remove widget from UI
+                self.setParent(None)
 
     def mouseDoubleClickEvent(self, event):
         conn = sqlite3.connect(DB_PATH)

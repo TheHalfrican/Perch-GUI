@@ -1,6 +1,6 @@
 import sys
 from PySide6.QtWidgets import QApplication
-from Launcher.DB.database import initialize_db
+from Launcher.DB.PHDatabase import initialize_db
 from Launcher.Views.PHMainWindowView import PerchLauncher
 
 if __name__ == "__main__":

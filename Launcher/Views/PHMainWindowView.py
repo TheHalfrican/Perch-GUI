@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from Launcher.ViewModels.PHGameLibraryViewModel import GameLibraryViewModel
-from Launcher.Views.PHGameWidgetView import GameWidget
+from Launcher.Views.PHGameWidgetView import GameWidgetView
 
 class PerchLauncher(QMainWindow):
     def __init__(self):
@@ -62,7 +62,7 @@ class PerchLauncher(QMainWindow):
         cols = 6
         row = col = 0
         for game in games:
-            widget = GameWidget(game.id, game.title, game.cover_path)
+            widget = GameWidgetView(game.id, game.title, game.cover_path)
             self.layout.addWidget(widget, row, col)
             col += 1
             if col >= cols:
