@@ -18,7 +18,7 @@ class GameLibraryViewModel:
         for folder in self.scan_paths:
             if not folder.exists():
                 continue
-            for ext in ('*.iso', '*.xex', '*.elf'):
+            for ext in ('*.iso', '*.xex', '*.elf', '*.*'):
                 for file in folder.rglob(ext):
                     title = file.stem
                     try:

@@ -71,7 +71,7 @@ class PerchLauncher(QMainWindow):
 
     def add_game(self):
         paths, _ = QFileDialog.getOpenFileNames(
-            self, "Select Game Files", "", "Xbox 360 Files (*.iso *.xex *.elf)"
+            self, "Select Game Files", "", "Xbox 360 Files (*.iso *.xex *.elf *.*)"
         )
         if not paths:
             return
