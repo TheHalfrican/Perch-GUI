@@ -1,8 +1,9 @@
+# Launcher/Views/PHSettingsDialogView.py
 import configparser
 from pathlib import Path
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QListWidget, QDialogButtonBox, QFileDialog
+    QListWidget, QDialogButtonBox, QFileDialog, QComboBox
 )
 from PySide6.QtCore import Qt
 
@@ -10,14 +11,14 @@ class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Settings")
-        self.resize(500, 400)
+        self.resize(500, 450)
 
         # Path to config.ini
         self.config_path = Path(__file__).parents[2] / 'config.ini'
         self.config = configparser.ConfigParser()
         self.config.read(self.config_path)
 
-        # UI Elements
+        # Main layout
         layout = QVBoxLayout(self)
 
         # Emulator Path
@@ -43,6 +44,14 @@ class SettingsDialog(QDialog):
         folder_btn_layout.addWidget(remove_folder_btn)
         layout.addLayout(folder_btn_layout)
 
+        # Theme Selector
+        layout.addWidget(QLabel("Theme:"))
+        theme_layout = QHBoxLayout()
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(["System Default", "Light", "Dark", "Xbox 360"])
+        theme_layout.addWidget(self.theme_combo)
+        layout.addLayout(theme_layout)
+
         # Dialog Buttons
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
@@ -62,6 +71,12 @@ class SettingsDialog(QDialog):
         for f in folders:
             if f:
                 self.folder_list.addItem(f)
+
+        # Load theme
+        theme = self.config.get('appearance', 'theme', fallback='System Default')
+        idx = self.theme_combo.findText(theme)
+        if idx >= 0:
+            self.theme_combo.setCurrentIndex(idx)
 
     def browse_emulator(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -83,15 +98,21 @@ class SettingsDialog(QDialog):
             self.folder_list.takeItem(self.folder_list.row(item))
 
     def save_settings(self):
-        # Update config values
+        # Ensure sections exist
         if not self.config.has_section('paths'):
             self.config.add_section('paths')
-        self.config.set('paths', 'xenia_path', self.emu_edit.text())
-
         if not self.config.has_section('library'):
             self.config.add_section('library')
+        if not self.config.has_section('appearance'):
+            self.config.add_section('appearance')
+
+        # Save emulator path
+        self.config.set('paths', 'xenia_path', self.emu_edit.text())
+        # Save scan folders
         scan_folders = [self.folder_list.item(i).text() for i in range(self.folder_list.count())]
         self.config.set('library', 'scan_folders', ';'.join(scan_folders))
+        # Save theme
+        self.config.set('appearance', 'theme', self.theme_combo.currentText())
 
         # Write back to file
         with open(self.config_path, 'w') as cfgfile:

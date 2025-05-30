@@ -1,20 +1,25 @@
+# Launcher/Views/PHMainWindowView.py
 import configparser
 from pathlib import Path
 from PySide6.QtWidgets import (
     QMainWindow, QFileDialog, QScrollArea,
-    QWidget, QGridLayout, QLabel, QSlider, QVBoxLayout, QDialog
+    QWidget, QGridLayout, QLabel, QSlider, QVBoxLayout, QApplication, QDialog
 )
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtCore import Qt
 from Launcher.ViewModels.PHGameLibraryViewModel import GameLibraryViewModel
 from Launcher.Views.PHGameWidgetView import GameWidgetView
 from Launcher.Views.PHSettingsDialogView import SettingsDialog
+from Launcher.Utils.PHAppearance import apply_theme
 
 class MainWindowView(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Perch - Game Library")
         self.resize(1000, 800)
+
+        # Apply the selected theme
+        apply_theme(QApplication.instance())
 
         # Cover size slider: width 100-600px (height auto 1.5x)
         self.cover_width = 300
@@ -76,7 +81,8 @@ class MainWindowView(QMainWindow):
     def open_settings(self):
         dialog = SettingsDialog(self)
         if dialog.exec() == QDialog.Accepted:
-            # Reload configuration and refresh library
+            # Re-apply theme and refresh library
+            apply_theme(QApplication.instance())
             self.viewmodel = GameLibraryViewModel()
             self.viewmodel.scan_library()
             self.populate_grid()
@@ -125,7 +131,7 @@ class MainWindowView(QMainWindow):
 
     def add_game(self):
         paths, _ = QFileDialog.getOpenFileNames(
-            self, "Select Game Files", "", "Xbox 360 Files (*.iso *.xex *.elf);;All Files (*)"
+            self, "Select Game Files", "", "Xbox 360 Files (*.iso *.xex *.elf)"
         )
         if not paths:
             return
