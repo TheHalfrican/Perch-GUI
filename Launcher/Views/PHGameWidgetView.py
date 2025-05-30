@@ -15,11 +15,14 @@ config.read(Path(__file__).parents[2] / 'config.ini')
 XENIA_PATH = Path(config.get('paths', 'xenia_path'))
 
 class GameWidgetView(QWidget):
-    def __init__(self, game_id: int, title: str, cover_path: str | None = None, parent=None):
+    def __init__(self, game_id: int, title: str, cover_path: str | None = None,
+                 cover_width: int = 300, cover_height: int = 450, parent=None):
         super().__init__(parent)
         self.game_id = game_id
         self.title = title
         self.cover_path = cover_path
+        self.cover_width = cover_width
+        self.cover_height = cover_height
         self.init_ui()
 
     def init_ui(self):
@@ -28,7 +31,7 @@ class GameWidgetView(QWidget):
         layout.setAlignment(Qt.AlignCenter)
 
         self.cover_label = QLabel()
-        self.cover_label.setFixedSize(100, 100)
+        self.cover_label.setFixedSize(self.cover_width, self.cover_height)
         self.cover_label.setAlignment(Qt.AlignCenter)
         self.set_cover(self.cover_path)
 
@@ -42,9 +45,13 @@ class GameWidgetView(QWidget):
         if path and Path(path).exists():
             pixmap = QPixmap(str(path))
         else:
-            pixmap = get_placeholder_pixmap(100)
-        pixmap = pixmap.scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pixmap = get_placeholder_pixmap(self.cover_width, self.cover_height)
+        pixmap = pixmap.scaled(
+            self.cover_width, self.cover_height,
+            Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
         self.cover_label.setPixmap(pixmap)
+        self.cover_label.setFixedSize(self.cover_width, self.cover_height)
         self.cover_path = path
 
     def contextMenuEvent(self, event):
@@ -55,7 +62,8 @@ class GameWidgetView(QWidget):
 
         if selected == set_cover_action:
             img_path, _ = QFileDialog.getOpenFileName(
-                self, "Choose Cover Image", "", "Image Files (*.png *.jpg *.bmp)"
+                self, "Choose Cover Image", "",
+                "Image Files (*.png *.jpg *.jpeg);;All Files (*)"
             )
             if img_path:
                 conn = sqlite3.connect(DB_PATH)
@@ -66,6 +74,7 @@ class GameWidgetView(QWidget):
                 )
                 conn.commit()
                 conn.close()
+                self.cover_path = img_path
                 self.set_cover(img_path)
 
         elif selected == remove_action:
@@ -80,7 +89,6 @@ class GameWidgetView(QWidget):
                 cursor.execute("DELETE FROM games WHERE id = ?", (self.game_id,))
                 conn.commit()
                 conn.close()
-                # Remove widget from UI
                 self.setParent(None)
 
     def mouseDoubleClickEvent(self, event):
