@@ -1,3 +1,6 @@
+# Launcher/Views/PHGameWidgetView.py
+import os
+import sys
 import sqlite3
 import subprocess
 import configparser
@@ -54,13 +57,39 @@ class GameWidgetView(QWidget):
         self.cover_label.setFixedSize(self.cover_width, self.cover_height)
         self.cover_path = path
 
+    def get_file_path(self) -> str:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT file_path FROM games WHERE id = ?", (self.game_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return row[0] if row else ''
+
     def contextMenuEvent(self, event):
         menu = QMenu(self)
+        launch_action = menu.addAction("Launch Game")
+        show_action = menu.addAction("Show in File Browser")
         set_cover_action = menu.addAction("Set Cover Image...")
         remove_action = menu.addAction("Remove Game from Library")
         selected = menu.exec(event.globalPos())
 
-        if selected == set_cover_action:
+        if selected == launch_action:
+            file_path = self.get_file_path()
+            if file_path:
+                subprocess.Popen([str(XENIA_PATH), file_path])
+
+        elif selected == show_action:
+            file_path = self.get_file_path()
+            if file_path:
+                # Open file explorer at the file
+                if sys.platform.startswith('darwin'):
+                    subprocess.Popen(['open', '-R', file_path])
+                elif sys.platform.startswith('win'):
+                    subprocess.Popen(['explorer', f'/select,{file_path}'])
+                else:
+                    subprocess.Popen(['xdg-open', os.path.dirname(file_path)])
+
+        elif selected == set_cover_action:
             img_path, _ = QFileDialog.getOpenFileName(
                 self, "Choose Cover Image", "",
                 "Image Files (*.png *.jpg *.jpeg);;All Files (*)"
@@ -92,10 +121,6 @@ class GameWidgetView(QWidget):
                 self.setParent(None)
 
     def mouseDoubleClickEvent(self, event):
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT file_path FROM games WHERE id = ?", (self.game_id,))
-        row = cursor.fetchone()
-        conn.close()
-        if row:
-            subprocess.Popen([str(XENIA_PATH), row[0]])
+        file_path = self.get_file_path()
+        if file_path:
+            subprocess.Popen([str(XENIA_PATH), file_path])
