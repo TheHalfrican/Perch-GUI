@@ -3,7 +3,8 @@ import configparser
 from pathlib import Path
 from PySide6.QtWidgets import (
     QMainWindow, QFileDialog, QScrollArea,
-    QWidget, QGridLayout, QLabel, QSlider, QVBoxLayout, QApplication, QDialog
+    QWidget, QGridLayout, QLabel, QSlider, QVBoxLayout,
+    QApplication, QDialog, QLineEdit
 )
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtCore import Qt
@@ -33,6 +34,11 @@ class MainWindowView(QMainWindow):
         self.slider.setValue(self.cover_width)
         self.slider.valueChanged.connect(self.on_slider_value_changed)
 
+        # Search bar for filtering titles
+        self.search_bar = QLineEdit()
+        self.search_bar.setPlaceholderText("Search games...")
+        self.search_bar.textChanged.connect(self.on_search_text_changed)
+
         # Menu Bar
         menubar = self.menuBar()
         file_menu = menubar.addMenu("File")
@@ -58,11 +64,14 @@ class MainWindowView(QMainWindow):
         main_widget = QWidget()
         main_layout = QVBoxLayout(main_widget)
 
-        # Slider label
+        # Slider label and slider
         self.slider_label = QLabel(f"Cover Size: {self.cover_width}×{self.cover_height}px")
         self.slider_label.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(self.slider_label)
         main_layout.addWidget(self.slider)
+
+        # Search bar
+        main_layout.addWidget(self.search_bar)
 
         # Scrollable grid container
         self.container = QWidget()
@@ -78,6 +87,10 @@ class MainWindowView(QMainWindow):
         self.setCentralWidget(main_widget)
         self.populate_grid()
 
+    def on_search_text_changed(self, text: str):
+        # Filter grid whenever search text changes
+        self.populate_grid()
+
     def open_settings(self):
         dialog = SettingsDialog(self)
         if dialog.exec() == QDialog.Accepted:
@@ -88,20 +101,27 @@ class MainWindowView(QMainWindow):
             self.populate_grid()
 
     def populate_grid(self):
-        # Clear grid
+        # Clear existing widgets
         for i in reversed(range(self.grid.count())):
             widget = self.grid.itemAt(i).widget()
             if widget:
                 widget.setParent(None)
 
+        # Get all games and apply filter
         games = self.viewmodel.get_all_games()
+        filter_text = self.search_bar.text().lower().strip()
+        if filter_text:
+            games = [g for g in games if filter_text in g.title.lower()]
+
+        # Placeholder if no games
         if not games:
-            label = QLabel("No games found. Use File > Add Game... to add titles.")
+            label = QLabel("No games match your search." if filter_text else
+                            "No games found. Use File > Add Game... to add titles.")
             label.setAlignment(Qt.AlignCenter)
             self.grid.addWidget(label, 0, 0)
             return
 
-        # Calculate dynamic column count based on viewport width
+        # Calculate columns based on viewport width
         spacing = self.grid.spacing()
         viewport_width = self.scroll.viewport().width()
         cols = max(1, (viewport_width + spacing) // (self.cover_width + spacing))
@@ -120,10 +140,10 @@ class MainWindowView(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        # Re-layout grid on window resize to adjust columns
+        # Re-layout grid on window resize
         self.populate_grid()
 
-    def on_slider_value_changed(self, value):
+    def on_slider_value_changed(self, value: int):
         self.cover_width = value
         self.cover_height = int(value * 1.5)
         self.slider_label.setText(f"Cover Size: {self.cover_width}×{self.cover_height}px")
