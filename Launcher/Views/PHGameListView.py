@@ -1,9 +1,18 @@
 
 
+
+# Additional imports for context menu and file operations
+from PySide6.QtWidgets import QMenu, QFileDialog, QMessageBox
+import subprocess
+import os
+import sys
+from pathlib import Path
+import sqlite3
+from PySide6.QtCore import Qt
+
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QLabel
 from PySide6.QtGui import QPixmap, QIcon
-from PySide6.QtCore import Qt, QSize
-import sqlite3
+from PySide6.QtCore import QSize
 from Launcher.DB.PHDatabase import DB_PATH
 
 class GameListView(QWidget):
@@ -28,6 +37,9 @@ class GameListView(QWidget):
         layout.addWidget(self.table)
         self.setLayout(layout)
 
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self.on_context_menu)
+
         self.refresh_list()
 
     def refresh_list(self, filter_text: str = ""):
@@ -35,17 +47,17 @@ class GameListView(QWidget):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT title, cover_path, last_played, play_count FROM games ORDER BY title ASC"
+            "SELECT id, title, cover_path, last_played, play_count FROM games ORDER BY title ASC"
         )
         rows = cursor.fetchall()
         conn.close()
 
         # Filter rows if a filter text is provided
         if filter_text:
-            rows = [r for r in rows if filter_text.lower() in r[0].lower()]
+            rows = [r for r in rows if filter_text.lower() in r[1].lower()]
 
         self.table.setRowCount(len(rows))
-        for row_idx, (title, cover_path, last_played, play_count) in enumerate(rows):
+        for row_idx, (game_id, title, cover_path, last_played, play_count) in enumerate(rows):
             # Cover art column
             if cover_path and cover_path.strip():
                 pixmap = QPixmap(str(cover_path))
@@ -66,6 +78,7 @@ class GameListView(QWidget):
 
             # Title column
             title_item = QTableWidgetItem(title)
+            title_item.setData(Qt.UserRole, game_id)
             self.table.setItem(row_idx, 1, title_item)
 
             # Last played column
@@ -81,3 +94,73 @@ class GameListView(QWidget):
         # Adjust row heights to fit cover size
         for i in range(self.table.rowCount()):
             self.table.setRowHeight(i, self.cover_size.height() + 8)
+
+    def on_context_menu(self, position):
+        # Determine the row that was clicked
+        row = self.table.rowAt(position.y())
+        if row < 0:
+            return
+        # Retrieve game_id from the title column (column 1)
+        item = self.table.item(row, 1)
+        game_id = item.data(Qt.UserRole)
+        menu = QMenu(self)
+        launch_action = menu.addAction("Launch Game")
+        show_action = menu.addAction("Show in File Browser")
+        set_cover_action = menu.addAction("Set Cover Image...")
+        remove_action = menu.addAction("Remove Game from Library")
+        selected = menu.exec(self.table.viewport().mapToGlobal(position))
+
+        if selected == launch_action:
+            file_path = self.get_game_file_path(game_id)
+            if file_path:
+                subprocess.Popen([str(Path(file_path)), file_path])
+
+        elif selected == show_action:
+            file_path = self.get_game_file_path(game_id)
+            if file_path:
+                if sys.platform.startswith('darwin'):
+                    subprocess.Popen(['open', '-R', file_path])
+                elif sys.platform.startswith('win'):
+                    subprocess.Popen(['explorer', f'/select,{file_path}'])
+                else:
+                    subprocess.Popen(['xdg-open', os.path.dirname(file_path)])
+
+        elif selected == set_cover_action:
+            img_path, _ = QFileDialog.getOpenFileName(
+                self, "Choose Cover Image", "",
+                "Image Files (*.png *.jpg *.jpeg);;All Files (*)"
+            )
+            if img_path:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE games SET cover_path = ? WHERE id = ?",
+                    (img_path, game_id)
+                )
+                conn.commit()
+                conn.close()
+                # Refresh list to show new cover
+                self.refresh_list()
+
+        elif selected == remove_action:
+            confirm = QMessageBox.question(
+                self, "Confirm Remove",
+                "Remove this game from library?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if confirm == QMessageBox.Yes:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM games WHERE id = ?", (game_id,))
+                conn.commit()
+                conn.close()
+                # Refresh list after removal
+                self.refresh_list()
+
+    def get_game_file_path(self, game_id: int) -> str:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT file_path FROM games WHERE id = ?", (game_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return row[0] if row else ""
