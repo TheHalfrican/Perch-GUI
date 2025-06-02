@@ -3,13 +3,15 @@ import configparser
 from pathlib import Path
 from PySide6.QtWidgets import (
     QMainWindow, QFileDialog, QScrollArea,
-    QWidget, QGridLayout, QLabel, QSlider, QVBoxLayout,
-    QApplication, QDialog, QLineEdit
+    QWidget, QGridLayout, QLabel, QSlider,
+    QVBoxLayout, QHBoxLayout, QApplication, QDialog,
+    QLineEdit, QPushButton
 )
 from PySide6.QtGui import QAction, QIcon
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from Launcher.ViewModels.PHGameLibraryViewModel import GameLibraryViewModel
 from Launcher.Views.PHGameWidgetView import GameWidgetView
+from Launcher.Views.PHGameListView import GameListView
 from Launcher.Views.PHSettingsDialogView import SettingsDialog
 from Launcher.Utils.PHAppearance import apply_theme
 
@@ -21,6 +23,9 @@ class MainWindowView(QMainWindow):
 
         # Apply the selected theme
         apply_theme(QApplication.instance())
+
+        # Flag for showing/hiding titles
+        self.show_titles = True
 
         # Cover size slider: width 100-600px (height auto 1.5x)
         self.cover_width = 300
@@ -34,27 +39,30 @@ class MainWindowView(QMainWindow):
         self.slider.setValue(self.cover_width)
         self.slider.valueChanged.connect(self.on_slider_value_changed)
 
-        # Search bar for filtering titles
+        # Search bar for filtering
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText("Search games...")
-        self.search_bar.textChanged.connect(self.on_search_text_changed)
+        self.search_bar.textChanged.connect(lambda _: self.populate_grid())
 
         # Menu Bar
         menubar = self.menuBar()
         file_menu = menubar.addMenu("File")
-
         add_action = QAction("Add Game...", self)
         add_action.triggered.connect(self.add_game)
         file_menu.addAction(add_action)
-
         settings_action = QAction("Settings...", self)
         settings_action.triggered.connect(self.open_settings)
         file_menu.addAction(settings_action)
-
         file_menu.addSeparator()
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
+
+        view_menu = menubar.addMenu("View")
+        toggle_titles = QAction("Show Titles", self, checkable=True)
+        toggle_titles.setChecked(True)
+        toggle_titles.triggered.connect(self.on_toggle_titles)
+        view_menu.addAction(toggle_titles)
 
         # ViewModel
         self.viewmodel = GameLibraryViewModel()
@@ -63,15 +71,35 @@ class MainWindowView(QMainWindow):
         # Main layout
         main_widget = QWidget()
         main_layout = QVBoxLayout(main_widget)
+        slider_layout = QHBoxLayout()
+        slider_layout.addStretch()
+        slider_layout.addWidget(self.slider)
+        main_layout.addLayout(slider_layout)
+        self.slider.setFixedWidth(self.width() // 4)
 
-        # Slider label and slider
-        self.slider_label = QLabel(f"Cover Size: {self.cover_width}×{self.cover_height}px")
-        self.slider_label.setAlignment(Qt.AlignCenter)
-        main_layout.addWidget(self.slider_label)
-        main_layout.addWidget(self.slider)
-
-        # Search bar
+        # View mode buttons
+        view_buttons_layout = QHBoxLayout()
+        # Grid button
+        self.grid_button = QPushButton()
+        self.grid_button.setIcon(QIcon('assets/grid_icon.png'))
+        self.grid_button.setToolTip("Grid View")
+        self.grid_button.setFixedSize(48, 48)
+        self.grid_button.setIconSize(QSize(48, 48))
+        self.grid_button.clicked.connect(self.populate_grid)
+        view_buttons_layout.addWidget(self.grid_button)
+        # List button
+        self.list_button = QPushButton()
+        self.list_button.setIcon(QIcon('assets/list_icon.png'))
+        self.list_button.setToolTip("List View")
+        self.list_button.setFixedSize(48, 48)
+        self.list_button.setIconSize(QSize(48, 48))
+        self.list_button.clicked.connect(self.populate_list)
+        view_buttons_layout.addWidget(self.list_button)
+        # Align buttons to left
+        view_buttons_layout.setAlignment(Qt.AlignLeft)
+        main_layout.addLayout(view_buttons_layout)
         main_layout.addWidget(self.search_bar)
+
 
         # Scrollable grid container
         self.container = QWidget()
@@ -84,47 +112,57 @@ class MainWindowView(QMainWindow):
         self.scroll.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         main_layout.addWidget(self.scroll)
 
+        # Create the list view container before populating
+        self.list_view = GameListView(self)
+        self.list_view.setVisible(False)
+        main_layout.addWidget(self.list_view)
+
         self.setCentralWidget(main_widget)
         self.populate_grid()
 
-    def on_search_text_changed(self, text: str):
-        # Filter grid whenever search text changes
+    def on_toggle_titles(self, checked: bool):
+        self.show_titles = checked
         self.populate_grid()
 
     def open_settings(self):
         dialog = SettingsDialog(self)
         if dialog.exec() == QDialog.Accepted:
-            # Re-apply theme and refresh library
             apply_theme(QApplication.instance())
             self.viewmodel = GameLibraryViewModel()
             self.viewmodel.scan_library()
             self.populate_grid()
 
     def populate_grid(self):
-        # Clear existing widgets
+        # Show grid, hide list view
+        self.scroll.setVisible(True)
+        self.list_view.setVisible(False)
+        # Show slider in grid view
+        self.slider.setVisible(True)
+
+        # Clear existing items
         for i in reversed(range(self.grid.count())):
-            widget = self.grid.itemAt(i).widget()
-            if widget:
-                widget.setParent(None)
+            w = self.grid.itemAt(i).widget()
+            if w:
+                w.setParent(None)
 
-        # Get all games and apply filter
         games = self.viewmodel.get_all_games()
-        filter_text = self.search_bar.text().lower().strip()
-        if filter_text:
-            games = [g for g in games if filter_text in g.title.lower()]
+        # Filter by search text
+        text = self.search_bar.text().lower().strip()
+        if text:
+            games = [g for g in games if text in g.title.lower()]
 
-        # Placeholder if no games
+        # Placeholder when no games
         if not games:
-            label = QLabel("No games match your search." if filter_text else
-                            "No games found. Use File > Add Game... to add titles.")
+            msg = "No games match your search." if text else "No games found. Use File > Add Game..."
+            label = QLabel(msg)
             label.setAlignment(Qt.AlignCenter)
             self.grid.addWidget(label, 0, 0)
             return
 
         # Calculate columns based on viewport width
         spacing = self.grid.spacing()
-        viewport_width = self.scroll.viewport().width()
-        cols = max(1, (viewport_width + spacing) // (self.cover_width + spacing))
+        w = self.scroll.viewport().width()
+        cols = max(1, (w + spacing) // (self.cover_width + spacing))
 
         row = col = 0
         for game in games:
@@ -132,6 +170,9 @@ class MainWindowView(QMainWindow):
                 game.id, game.title, game.cover_path,
                 self.cover_width, self.cover_height
             )
+            # Show or hide title below cover
+            widget.title_label.setVisible(self.show_titles)
+
             self.grid.addWidget(widget, row, col)
             col += 1
             if col >= cols:
@@ -140,21 +181,30 @@ class MainWindowView(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        # Re-layout grid on window resize
+        self.slider.setFixedWidth(self.width() // 4)
         self.populate_grid()
 
     def on_slider_value_changed(self, value: int):
         self.cover_width = value
         self.cover_height = int(value * 1.5)
-        self.slider_label.setText(f"Cover Size: {self.cover_width}×{self.cover_height}px")
         self.populate_grid()
 
     def add_game(self):
         paths, _ = QFileDialog.getOpenFileNames(
-            self, "Select Game Files", "", "Xbox 360 Files (*.iso *.xex *.elf)"
+            self, "Select Game Files", "", "Xbox 360 Files (*.iso *.xex *.elf);;All Files (*)"
         )
         if not paths:
             return
         for p in paths:
             self.viewmodel.add_game(p)
         self.populate_grid()
+
+    def populate_list(self):
+        # Show list view, hide grid
+        self.scroll.setVisible(False)
+        self.list_view.setVisible(True)
+        # Hide slider in list view
+        self.slider.setVisible(False)
+        # Refresh list view with current search filter
+        filter_text = self.search_bar.text().lower().strip()
+        self.list_view.refresh_list(filter_text)
