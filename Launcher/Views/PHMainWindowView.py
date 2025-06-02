@@ -27,6 +27,9 @@ class MainWindowView(QMainWindow):
         # Flag for showing/hiding titles
         self.show_titles = True
 
+        # Track current view mode: False = grid, True = list
+        self.list_mode = False
+
         # Cover size slider: width 100-600px (height auto 1.5x)
         self.cover_width = 300
         self.cover_height = 450
@@ -139,6 +142,8 @@ class MainWindowView(QMainWindow):
         # Show slider in grid view
         self.slider.setVisible(True)
 
+        self.list_mode = False
+
         # Clear existing items
         for i in reversed(range(self.grid.count())):
             w = self.grid.itemAt(i).widget()
@@ -182,7 +187,12 @@ class MainWindowView(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.slider.setFixedWidth(self.width() // 4)
-        self.populate_grid()
+        if self.list_mode:
+            # Refresh list view without switching to grid
+            filter_text = self.search_bar.text().lower().strip()
+            self.list_view.refresh_list(filter_text)
+        else:
+            self.populate_grid()
 
     def on_slider_value_changed(self, value: int):
         self.cover_width = value
@@ -205,6 +215,9 @@ class MainWindowView(QMainWindow):
         self.list_view.setVisible(True)
         # Hide slider in list view
         self.slider.setVisible(False)
+
+        self.list_mode = True
+
         # Refresh list view with current search filter
         filter_text = self.search_bar.text().lower().strip()
         self.list_view.refresh_list(filter_text)
