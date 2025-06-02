@@ -60,3 +60,21 @@ def apply_theme(app: QApplication):
         xbox.setColor(QPalette.Link, QColor(240, 115, 0))
         xbox.setColor(QPalette.LinkVisited, QColor(200, 80, 0))
         app.setPalette(xbox)
+
+    elif theme == 'Lavender Teal':
+        # Lavender and Teal theme
+        lt = QPalette()
+        # Lavender background
+        lt.setColor(QPalette.Window, QColor(230, 230, 250))  # Lavender
+        lt.setColor(QPalette.WindowText, QColor(  0,  51,  51))  # Teal-ish dark text
+        lt.setColor(QPalette.Base, QColor(245, 245, 255))  # Light lavender
+        lt.setColor(QPalette.Text, QColor(  0,  51,  51))
+        lt.setColor(QPalette.Button, QColor(200, 200, 235))  # Muted lavender
+        lt.setColor(QPalette.ButtonText, QColor(  0,  51,  51))
+        # Teal highlights
+        lt.setColor(QPalette.Highlight, QColor(  0, 128, 128))  # Teal
+        lt.setColor(QPalette.HighlightedText, Qt.white)
+        # Link colors (using teal)
+        lt.setColor(QPalette.Link, QColor(  0, 150, 150))
+        lt.setColor(QPalette.LinkVisited, QColor(  0, 120, 120))
+        app.setPalette(lt)

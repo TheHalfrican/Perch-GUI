@@ -48,7 +48,7 @@ class SettingsDialog(QDialog):
         layout.addWidget(QLabel("Theme:"))
         theme_layout = QHBoxLayout()
         self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["System Default", "Light", "Dark", "Xbox 360"])
+        self.theme_combo.addItems(["System Default", "Light", "Dark", "Xbox 360", "Lavender Teal"])
         theme_layout.addWidget(self.theme_combo)
         layout.addLayout(theme_layout)
 
