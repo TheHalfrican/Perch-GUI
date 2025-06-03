@@ -73,6 +73,15 @@ class MainWindowView(QMainWindow):
         toggle_titles.triggered.connect(self.on_toggle_titles)
         view_menu.addAction(toggle_titles)
 
+        # Add Grid/List view options to the View menu
+        grid_action = QAction("Grid View", self)
+        grid_action.triggered.connect(self.populate_grid)
+        view_menu.addAction(grid_action)
+
+        list_action = QAction("List View", self)
+        list_action.triggered.connect(self.populate_list)
+        view_menu.addAction(list_action)
+
         # ViewModel
         self.viewmodel = GameLibraryViewModel()
         self.viewmodel.scan_library()
