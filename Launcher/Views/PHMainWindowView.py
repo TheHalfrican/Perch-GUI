@@ -31,8 +31,12 @@ class MainWindowView(QMainWindow):
         self.list_mode = False
 
         # Cover size slider: width 100-600px (height auto 1.5x)
-        self.cover_width = 300
-        self.cover_height = 450
+        # Load saved cover_width from config, default to 300
+        config = configparser.ConfigParser()
+        config.read(Path(__file__).parents[2] / 'config.ini')
+        saved_width = config.getint('ui', 'cover_width', fallback=300) if config.has_section('ui') else 300
+        self.cover_width = min(max(saved_width, 100), 600)
+        self.cover_height = int(self.cover_width * 1.5)
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setMinimum(100)
         self.slider.setMaximum(600)
@@ -197,6 +201,15 @@ class MainWindowView(QMainWindow):
     def on_slider_value_changed(self, value: int):
         self.cover_width = value
         self.cover_height = int(value * 1.5)
+        # Save cover_width to config.ini
+        config = configparser.ConfigParser()
+        config_path = Path(__file__).parents[2] / 'config.ini'
+        config.read(config_path)
+        if not config.has_section('ui'):
+            config.add_section('ui')
+        config.set('ui', 'cover_width', str(self.cover_width))
+        with open(config_path, 'w') as cfgfile:
+            config.write(cfgfile)
         self.populate_grid()
 
     def add_game(self):
