@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtCore import Qt, QSize
-from Launcher.ViewModels.PHGameLibraryViewModel import GameLibraryViewModel
+from Launcher.ViewModels.PHMainWindowViewModel import MainWindowViewModel
 from Launcher.Views.PHGameWidgetView import GameWidgetView
 from Launcher.Views.PHGameListView import GameListView
 from Launcher.Views.PHSettingsDialogView import SettingsDialog
@@ -22,30 +22,22 @@ class MainWindowView(QMainWindow):
         self.resize(1000, 800)
 
         self.current_selected_widget = None
+        # Instantiate ViewModel
+        self.vm = MainWindowViewModel()
 
         # Apply the selected theme
         apply_theme(QApplication.instance())
 
-        # Flag for showing/hiding titles
-        self.show_titles = True
-
-        # Track current view mode: False = grid, True = list
-        self.list_mode = False
-
-        # Cover size slider: width 100-600px (height auto 1.5x)
-        # Load saved cover_width from config, default to 300
-        config = configparser.ConfigParser()
-        config.read(Path(__file__).parents[2] / 'config.ini')
-        saved_width = config.getint('ui', 'cover_width', fallback=300) if config.has_section('ui') else 300
-        self.cover_width = min(max(saved_width, 100), 600)
-        self.cover_height = int(self.cover_width * 1.5)
+        # Initialize cover dimensions from ViewModel
+        self.cover_width = self.vm.cover_width
+        self.cover_height = self.vm.cover_height
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setMinimum(100)
         self.slider.setMaximum(600)
         self.slider.setSingleStep(50)
         self.slider.setTickInterval(100)
         self.slider.setTickPosition(QSlider.TicksBelow)
-        self.slider.setValue(self.cover_width)
+        self.slider.setValue(self.vm.cover_width)
         self.slider.valueChanged.connect(self.on_slider_value_changed)
 
         # Search bar for filtering
@@ -55,13 +47,15 @@ class MainWindowView(QMainWindow):
 
         # Menu Bar
         menubar = self.menuBar()
+        # System menu
+        system_menu = menubar.addMenu("System")
         file_menu = menubar.addMenu("File")
         add_action = QAction("Add Game...", self)
         add_action.triggered.connect(self.add_game)
         file_menu.addAction(add_action)
         settings_action = QAction("Settings...", self)
         settings_action.triggered.connect(self.open_settings)
-        file_menu.addAction(settings_action)
+        system_menu.addAction(settings_action)
         file_menu.addSeparator()
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close)
@@ -69,7 +63,7 @@ class MainWindowView(QMainWindow):
 
         view_menu = menubar.addMenu("View")
         toggle_titles = QAction("Show Titles", self, checkable=True)
-        toggle_titles.setChecked(True)
+        toggle_titles.setChecked(self.vm.show_titles)
         toggle_titles.triggered.connect(self.on_toggle_titles)
         view_menu.addAction(toggle_titles)
 
@@ -81,10 +75,6 @@ class MainWindowView(QMainWindow):
         list_action = QAction("List View", self)
         list_action.triggered.connect(self.populate_list)
         view_menu.addAction(list_action)
-
-        # ViewModel
-        self.viewmodel = GameLibraryViewModel()
-        self.viewmodel.scan_library()
 
         # Main layout
         main_widget = QWidget()
@@ -139,25 +129,23 @@ class MainWindowView(QMainWindow):
         self.populate_grid()
 
     def on_toggle_titles(self, checked: bool):
-        self.show_titles = checked
+        self.vm.set_show_titles(checked)
         self.populate_grid()
 
     def open_settings(self):
         dialog = SettingsDialog(self)
         if dialog.exec() == QDialog.Accepted:
             apply_theme(QApplication.instance())
-            self.viewmodel = GameLibraryViewModel()
-            self.viewmodel.scan_library()
+            self.vm = MainWindowViewModel()
             self.populate_grid()
 
     def populate_grid(self):
+        self.vm.set_list_mode(False)
         # Show grid, hide list view
         self.scroll.setVisible(True)
         self.list_view.setVisible(False)
         # Show slider in grid view
         self.slider.setVisible(True)
-
-        self.list_mode = False
 
         # Clear existing items
         for i in reversed(range(self.grid.count())):
@@ -165,13 +153,12 @@ class MainWindowView(QMainWindow):
             if w:
                 w.setParent(None)
 
-        games = self.viewmodel.get_all_games()
-        # Filter by search text
-        text = self.search_bar.text().lower().strip()
-        if text:
-            games = [g for g in games if text in g.title.lower()]
+        # Update filter text in VM
+        self.vm.set_filter(self.search_bar.text())
+        games = self.vm.get_filtered_games()
 
         # Placeholder when no games
+        text = self.search_bar.text().lower().strip()
         if not games:
             msg = "No games match your search." if text else "No games found. Use File > Add Game..."
             label = QLabel(msg)
@@ -191,7 +178,7 @@ class MainWindowView(QMainWindow):
                 self.cover_width, self.cover_height
             )
             # Show or hide title below cover
-            widget.title_label.setVisible(self.show_titles)
+            widget.title_label.setVisible(self.vm.show_titles)
             # Connect click signal to selection handler
             widget.clicked.connect(self.on_game_clicked)
             self.grid.addWidget(widget, row, col)
@@ -203,25 +190,17 @@ class MainWindowView(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.slider.setFixedWidth(self.width() // 4)
-        if self.list_mode:
+        if self.vm.list_mode:
             # Refresh list view without switching to grid
-            filter_text = self.search_bar.text().lower().strip()
-            self.list_view.refresh_list(filter_text)
+            self.list_view.refresh_list(self.vm.current_filter)
         else:
             self.populate_grid()
 
     def on_slider_value_changed(self, value: int):
         self.cover_width = value
         self.cover_height = int(value * 1.5)
-        # Save cover_width to config.ini
-        config = configparser.ConfigParser()
-        config_path = Path(__file__).parents[2] / 'config.ini'
-        config.read(config_path)
-        if not config.has_section('ui'):
-            config.add_section('ui')
-        config.set('ui', 'cover_width', str(self.cover_width))
-        with open(config_path, 'w') as cfgfile:
-            config.write(cfgfile)
+        # Save cover_width via ViewModel
+        self.vm.save_cover_width(value)
         self.populate_grid()
 
     def add_game(self):
@@ -231,22 +210,19 @@ class MainWindowView(QMainWindow):
         if not paths:
             return
         for p in paths:
-            self.viewmodel.add_game(p)
+            self.vm.game_library_vm.add_game(p)
+        self.vm.refresh_games()
         self.populate_grid()
 
     def populate_list(self):
-        # Show list view, hide grid
+        self.vm.set_list_mode(True)
+        self.vm.set_filter(self.search_bar.text())
+        self.vm.refresh_games()
+        # Hide grid and slider, show list view
         self.scroll.setVisible(False)
         self.list_view.setVisible(True)
-        # Hide slider in list view
         self.slider.setVisible(False)
-
-        self.list_mode = True
-
-        # Refresh list view with current search filter
-        filter_text = self.search_bar.text().lower().strip()
-        self.list_view.refresh_list(filter_text)
-
+        self.list_view.refresh_list(self.vm.current_filter)
 
     def on_game_clicked(self, widget):
         # Clear previous highlight

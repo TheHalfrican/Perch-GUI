@@ -6,6 +6,8 @@ from Launcher.Views.PHMainWindowView import MainWindowView
 if __name__ == "__main__":
     initialize_db()
     app = QApplication(sys.argv)
+    app.setApplicationName("Perch")
+    app.setApplicationDisplayName("Perch")
     window = MainWindowView()
     window.show()
     sys.exit(app.exec())
