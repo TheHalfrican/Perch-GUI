@@ -14,6 +14,7 @@ from Launcher.Views.PHGameWidgetView import GameWidgetView
 from Launcher.Views.PHGameListView import GameListView
 from Launcher.Views.PHSettingsDialogView import SettingsDialog
 from Launcher.Utils.PHAppearance import apply_theme
+from Launcher.Controllers.PHMainWindowController import MainWindowController
 
 class MainWindowView(QMainWindow):
     def __init__(self):
@@ -24,6 +25,8 @@ class MainWindowView(QMainWindow):
         self.current_selected_widget = None
         # Instantiate ViewModel
         self.vm = MainWindowViewModel()
+        # Instantiate Controller
+        self.controller = MainWindowController(self.vm)
 
         # Apply the selected theme
         apply_theme(QApplication.instance())
@@ -209,9 +212,7 @@ class MainWindowView(QMainWindow):
         )
         if not paths:
             return
-        for p in paths:
-            self.vm.game_library_vm.add_game(p)
-        self.vm.refresh_games()
+        self.controller.add_games(paths)
         self.populate_grid()
 
     def populate_list(self):

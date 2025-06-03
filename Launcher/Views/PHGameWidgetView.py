@@ -11,6 +11,7 @@ from PySide6.QtCore import Qt, Signal
 
 from Launcher.DB.PHDatabase import DB_PATH
 from Launcher.Utils.PHImages import get_placeholder_pixmap
+from Launcher.Controllers.PHGameWidgetController import GameWidgetController
 
 # Load Xenia path from config.ini
 config = configparser.ConfigParser()
@@ -23,6 +24,10 @@ class GameWidgetView(QWidget):
                  cover_width: int = 300, cover_height: int = 450, parent=None):
         super().__init__(parent)
         self.game_id = game_id
+
+        # Instantiate Controller for this Widget
+        self.controller = GameWidgetController(self.game_id)
+
         self.title = title
         self.cover_path = cover_path
         self.cover_width = cover_width
@@ -58,13 +63,6 @@ class GameWidgetView(QWidget):
         self.cover_label.setFixedSize(self.cover_width, self.cover_height)
         self.cover_path = path
 
-    def get_file_path(self) -> str:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT file_path FROM games WHERE id = ?", (self.game_id,))
-        row = cursor.fetchone()
-        conn.close()
-        return row[0] if row else ''
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
@@ -75,20 +73,10 @@ class GameWidgetView(QWidget):
         selected = menu.exec(event.globalPos())
 
         if selected == launch_action:
-            file_path = self.get_file_path()
-            if file_path:
-                subprocess.Popen([str(XENIA_PATH), file_path])
+            self.controller.launch_game()
 
         elif selected == show_action:
-            file_path = self.get_file_path()
-            if file_path:
-                # Open file explorer at the file
-                if sys.platform.startswith('darwin'):
-                    subprocess.Popen(['open', '-R', file_path])
-                elif sys.platform.startswith('win'):
-                    subprocess.Popen(['explorer', f'/select,{file_path}'])
-                else:
-                    subprocess.Popen(['xdg-open', os.path.dirname(file_path)])
+            self.controller.reveal_in_file_browser()
 
         elif selected == set_cover_action:
             img_path, _ = QFileDialog.getOpenFileName(
@@ -96,14 +84,7 @@ class GameWidgetView(QWidget):
                 "Image Files (*.png *.jpg *.jpeg);;All Files (*)"
             )
             if img_path:
-                conn = sqlite3.connect(DB_PATH)
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE games SET cover_path = ? WHERE id = ?",
-                    (img_path, self.game_id)
-                )
-                conn.commit()
-                conn.close()
+                self.controller.set_cover(img_path)
                 self.cover_path = img_path
                 self.set_cover(img_path)
 
@@ -114,15 +95,11 @@ class GameWidgetView(QWidget):
                 QMessageBox.Yes | QMessageBox.No
             )
             if confirm == QMessageBox.Yes:
-                conn = sqlite3.connect(DB_PATH)
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM games WHERE id = ?", (self.game_id,))
-                conn.commit()
-                conn.close()
+                self.controller.delete_game()
                 self.setParent(None)
 
     def mouseDoubleClickEvent(self, event):
-        file_path = self.get_file_path()
+        file_path = self.controller.get_file_path()
         if file_path:
             subprocess.Popen([str(XENIA_PATH), file_path])
 
