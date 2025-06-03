@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QApplication, QDialog,
     QLineEdit, QPushButton
 )
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QIcon, QPalette, QColor
 from PySide6.QtCore import Qt, QSize
 from Launcher.ViewModels.PHMainWindowViewModel import MainWindowViewModel
 from Launcher.Views.PHGameWidgetView import GameWidgetView
@@ -47,6 +47,18 @@ class MainWindowView(QMainWindow):
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText("Search games...")
         self.search_bar.textChanged.connect(lambda _: self.populate_grid())
+        # Adjust placeholder text color based on theme via palette
+        current_theme = self.vm.config.get('appearance', 'theme', fallback='System Default')
+        palette = self.search_bar.palette()
+        if current_theme == 'Dark':
+            # White text and light gray placeholder on dark background
+            self.search_bar.setStyleSheet("QLineEdit { color: white; }")
+            palette.setColor(QPalette.PlaceholderText, QColor("lightgray"))
+        else:
+            # Black text and dark gray placeholder on light background
+            self.search_bar.setStyleSheet("QLineEdit { color: black; }")
+            palette.setColor(QPalette.PlaceholderText, QColor("darkgray"))
+        self.search_bar.setPalette(palette)
 
         # Menu Bar
         menubar = self.menuBar()
@@ -140,6 +152,16 @@ class MainWindowView(QMainWindow):
         if dialog.exec() == QDialog.Accepted:
             apply_theme(QApplication.instance())
             self.vm = MainWindowViewModel()
+            # Update search bar placeholder color after theme change
+            new_theme = self.vm.config.get('appearance', 'theme', fallback='System Default')
+            palette = self.search_bar.palette()
+            if new_theme == 'Dark':
+                self.search_bar.setStyleSheet("QLineEdit { color: white; }")
+                palette.setColor(QPalette.PlaceholderText, QColor("lightgray"))
+            else:
+                self.search_bar.setStyleSheet("QLineEdit { color: black; }")
+                palette.setColor(QPalette.PlaceholderText, QColor("darkgray"))
+            self.search_bar.setPalette(palette)
             self.populate_grid()
 
     def populate_grid(self):

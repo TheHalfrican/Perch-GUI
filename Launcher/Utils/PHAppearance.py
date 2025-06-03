@@ -65,9 +65,9 @@ def apply_theme(app: QApplication):
         # Lavender and Teal theme
         lt = QPalette()
         # Lavender background
-        lt.setColor(QPalette.Window, QColor(230, 230, 250))  # Lavender
+        lt.setColor(QPalette.Window, QColor(220, 208, 255))  # Lavender
         lt.setColor(QPalette.WindowText, QColor(  0,  51,  51))  # Teal-ish dark text
-        lt.setColor(QPalette.Base, QColor(245, 245, 255))  # Light lavender
+        lt.setColor(QPalette.Base, QColor(230, 230, 250))  # Light lavender
         lt.setColor(QPalette.Text, QColor(  0,  51,  51))
         lt.setColor(QPalette.Button, QColor(200, 200, 235))  # Muted lavender
         lt.setColor(QPalette.ButtonText, QColor(  0,  51,  51))

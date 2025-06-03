@@ -1,27 +1,18 @@
-# Additional imports for context menu and file operations
-from PySide6.QtWidgets import QMenu, QFileDialog, QMessageBox
-import subprocess
-import os
-import sys
-import configparser
-from pathlib import Path
-import sqlite3
-from PySide6.QtCore import Qt
-
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QLabel
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView,
+    QMenu, QFileDialog, QMessageBox
+)
 from PySide6.QtGui import QPixmap, QIcon
-from PySide6.QtCore import QSize
-from Launcher.DB.PHDatabase import DB_PATH
-
-# Load Xenia path from config.ini
-config = configparser.ConfigParser()
-config.read(Path(__file__).parents[2] / 'config.ini')
-XENIA_PATH = Path(config.get('paths', 'xenia_path'))
+from PySide6.QtCore import Qt, QSize
+from Launcher.Controllers.PHGameListController import GameListController
 
 class GameListView(QWidget):
     def __init__(self, parent=None, cover_size: QSize = QSize(64, 96)):
         super().__init__(parent)
         self.cover_size = cover_size
+
+        # Instantiate controller
+        self.controller = GameListController()
 
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
@@ -49,14 +40,8 @@ class GameListView(QWidget):
         self.refresh_list()
 
     def refresh_list(self, filter_text: str = ""):
-        # Fetch games from the database
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, title, cover_path, last_played, play_count FROM games ORDER BY title ASC"
-        )
-        rows = cursor.fetchall()
-        conn.close()
+        # Fetch all games via controller
+        rows = self.controller.fetch_games()
 
         # Filter rows if a filter text is provided
         if filter_text:
@@ -117,19 +102,10 @@ class GameListView(QWidget):
         selected = menu.exec(self.table.viewport().mapToGlobal(position))
 
         if selected == launch_action:
-            file_path = self.get_file_path()
-            if file_path:
-                subprocess.Popen([str(XENIA_PATH), file_path])
+            self.controller.launch_game(game_id)
 
         elif selected == show_action:
-            file_path = self.get_game_file_path(game_id)
-            if file_path:
-                if sys.platform.startswith('darwin'):
-                    subprocess.Popen(['open', '-R', file_path])
-                elif sys.platform.startswith('win'):
-                    subprocess.Popen(['explorer', f'/select,{file_path}'])
-                else:
-                    subprocess.Popen(['xdg-open', os.path.dirname(file_path)])
+            self.controller.reveal_in_file_browser(game_id)
 
         elif selected == set_cover_action:
             img_path, _ = QFileDialog.getOpenFileName(
@@ -137,14 +113,7 @@ class GameListView(QWidget):
                 "Image Files (*.png *.jpg *.jpeg);;All Files (*)"
             )
             if img_path:
-                conn = sqlite3.connect(DB_PATH)
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE games SET cover_path = ? WHERE id = ?",
-                    (img_path, game_id)
-                )
-                conn.commit()
-                conn.close()
+                self.controller.set_cover(game_id, img_path)
                 # Refresh list to show new cover
                 self.refresh_list()
 
@@ -155,27 +124,13 @@ class GameListView(QWidget):
                 QMessageBox.Yes | QMessageBox.No
             )
             if confirm == QMessageBox.Yes:
-                conn = sqlite3.connect(DB_PATH)
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM games WHERE id = ?", (game_id,))
-                conn.commit()
-                conn.close()
+                self.controller.delete_game(game_id)
                 # Refresh list after removal
                 self.refresh_list()
-
-    def get_game_file_path(self, game_id: int) -> str:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT file_path FROM games WHERE id = ?", (game_id,))
-        row = cursor.fetchone()
-        conn.close()
-        return row[0] if row else ""
 
     def on_cell_double_clicked(self, row: int, column: int):
         # Only launch if double-clicked in cover (col 0) or title (col 1)
         if column in (0, 1):
             item = self.table.item(row, 1)
             game_id = item.data(Qt.UserRole)
-            file_path = self.get_game_file_path(game_id)
-            if file_path:
-                subprocess.Popen([str(XENIA_PATH), file_path])
+            self.controller.launch_game(game_id)
