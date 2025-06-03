@@ -1,11 +1,9 @@
-
-
-
 # Additional imports for context menu and file operations
 from PySide6.QtWidgets import QMenu, QFileDialog, QMessageBox
 import subprocess
 import os
 import sys
+import configparser
 from pathlib import Path
 import sqlite3
 from PySide6.QtCore import Qt
@@ -14,6 +12,11 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetIt
 from PySide6.QtGui import QPixmap, QIcon
 from PySide6.QtCore import QSize
 from Launcher.DB.PHDatabase import DB_PATH
+
+# Load Xenia path from config.ini
+config = configparser.ConfigParser()
+config.read(Path(__file__).parents[2] / 'config.ini')
+XENIA_PATH = Path(config.get('paths', 'xenia_path'))
 
 class GameListView(QWidget):
     def __init__(self, parent=None, cover_size: QSize = QSize(64, 96)):
@@ -39,6 +42,9 @@ class GameListView(QWidget):
 
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.on_context_menu)
+
+        # Connect double-click to launch game when in first two columns
+        self.table.cellDoubleClicked.connect(self.on_cell_double_clicked)
 
         self.refresh_list()
 
@@ -111,9 +117,9 @@ class GameListView(QWidget):
         selected = menu.exec(self.table.viewport().mapToGlobal(position))
 
         if selected == launch_action:
-            file_path = self.get_game_file_path(game_id)
+            file_path = self.get_file_path()
             if file_path:
-                subprocess.Popen([str(Path(file_path)), file_path])
+                subprocess.Popen([str(XENIA_PATH), file_path])
 
         elif selected == show_action:
             file_path = self.get_game_file_path(game_id)
@@ -164,3 +170,12 @@ class GameListView(QWidget):
         row = cursor.fetchone()
         conn.close()
         return row[0] if row else ""
+
+    def on_cell_double_clicked(self, row: int, column: int):
+        # Only launch if double-clicked in cover (col 0) or title (col 1)
+        if column in (0, 1):
+            item = self.table.item(row, 1)
+            game_id = item.data(Qt.UserRole)
+            file_path = self.get_game_file_path(game_id)
+            if file_path:
+                subprocess.Popen([str(XENIA_PATH), file_path])

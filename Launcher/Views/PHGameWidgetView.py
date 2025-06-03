@@ -7,7 +7,7 @@ import configparser
 from pathlib import Path
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFileDialog, QMenu, QMessageBox
 from PySide6.QtGui import QPixmap
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 
 from Launcher.DB.PHDatabase import DB_PATH
 from Launcher.Utils.PHImages import get_placeholder_pixmap
@@ -18,6 +18,7 @@ config.read(Path(__file__).parents[2] / 'config.ini')
 XENIA_PATH = Path(config.get('paths', 'xenia_path'))
 
 class GameWidgetView(QWidget):
+    clicked = Signal(object)
     def __init__(self, game_id: int, title: str, cover_path: str | None = None,
                  cover_width: int = 300, cover_height: int = 450, parent=None):
         super().__init__(parent)
@@ -124,3 +125,8 @@ class GameWidgetView(QWidget):
         file_path = self.get_file_path()
         if file_path:
             subprocess.Popen([str(XENIA_PATH), file_path])
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit(self)
+        super().mousePressEvent(event)

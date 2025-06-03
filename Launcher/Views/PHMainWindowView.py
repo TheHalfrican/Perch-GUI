@@ -21,6 +21,8 @@ class MainWindowView(QMainWindow):
         self.setWindowTitle("Perch - Game Library")
         self.resize(1000, 800)
 
+        self.current_selected_widget = None
+
         # Apply the selected theme
         apply_theme(QApplication.instance())
 
@@ -181,7 +183,8 @@ class MainWindowView(QMainWindow):
             )
             # Show or hide title below cover
             widget.title_label.setVisible(self.show_titles)
-
+            # Connect click signal to selection handler
+            widget.clicked.connect(self.on_game_clicked)
             self.grid.addWidget(widget, row, col)
             col += 1
             if col >= cols:
@@ -234,3 +237,12 @@ class MainWindowView(QMainWindow):
         # Refresh list view with current search filter
         filter_text = self.search_bar.text().lower().strip()
         self.list_view.refresh_list(filter_text)
+
+
+    def on_game_clicked(self, widget):
+        # Clear previous highlight
+        if self.current_selected_widget and self.current_selected_widget is not widget:
+            self.current_selected_widget.setStyleSheet("")
+        # Highlight new selection
+        widget.setStyleSheet("border: 2px solid #FFD700;")
+        self.current_selected_widget = widget
