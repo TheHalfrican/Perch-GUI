@@ -1,5 +1,3 @@
-
-
 import subprocess
 import os
 import sys
@@ -46,6 +44,19 @@ class MainWindowController:
                 emulator_path = self.vm.config.get('paths', 'xenia_path', fallback=None)
             if emulator_path:
                 subprocess.Popen([emulator_path, file_path])
+                # Update play_count and last_played in the database
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    UPDATE games
+                       SET play_count = play_count + 1,
+                           last_played = datetime('now')
+                     WHERE id = ?
+                    """, (game_id,)
+                )
+                conn.commit()
+                conn.close()
 
     def reveal_in_file_browser(self, game_id: int):
         

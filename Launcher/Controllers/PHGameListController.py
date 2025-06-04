@@ -34,6 +34,19 @@ class GameListController:
         file_path = self._get_file_path(game_id)
         if file_path and self.emulator_path:
             subprocess.Popen([self.emulator_path, file_path])
+            # Update play_count and last_played in the database
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE games
+                   SET play_count = play_count + 1,
+                       last_played = datetime('now')
+                 WHERE id = ?
+                """, (game_id,)
+            )
+            conn.commit()
+            conn.close()
 
     def reveal_in_file_browser(self, game_id: int):
         
