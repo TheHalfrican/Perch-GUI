@@ -4,7 +4,7 @@ import os
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QListWidget, QDialogButtonBox, QFileDialog, QComboBox, QTabWidget,
-    QWidget, QCheckBox, QSpinBox, QGroupBox, QFormLayout
+    QWidget, QCheckBox, QSpinBox, QGroupBox, QFormLayout, QScrollArea
 )
 from PySide6.QtCore import Qt
 from Launcher.ViewModels.PHSettingsDialogViewModel import SettingsDialogViewModel
@@ -16,6 +16,8 @@ class SettingsDialog(QDialog):
         self.vm = SettingsDialogViewModel()
         self.setWindowTitle("Settings")
         self.resize(500, 450)
+        # Ensure sufficient height on Windows so buttons are visible
+        self.setMinimumSize(500, 600)
 
         # Create tab widget
         self.tabs = QTabWidget(self)
@@ -206,8 +208,11 @@ class SettingsDialog(QDialog):
         emu_layout_tab.addWidget(canary_hacks_box)
         emu_layout_tab.addSpacing(10)
 
-        # Add emulator settings tab
-        self.tabs.addTab(emu_tab, "Emulator")
+        # Wrap emulator settings in a scroll area so contents aren’t squished
+        emu_scroll = QScrollArea()
+        emu_scroll.setWidgetResizable(True)
+        emu_scroll.setWidget(emu_tab)
+        self.tabs.addTab(emu_scroll, "Emulator")
 
         # Main layout for dialog
         main_layout = QVBoxLayout(self)
