@@ -2,7 +2,7 @@
 from pathlib import Path
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QListWidget, QDialogButtonBox, QFileDialog, QComboBox
+    QListWidget, QDialogButtonBox, QFileDialog, QComboBox, QTabWidget, QWidget
 )
 from PySide6.QtCore import Qt
 from Launcher.ViewModels.PHSettingsDialogViewModel import SettingsDialogViewModel
@@ -15,8 +15,12 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Settings")
         self.resize(500, 450)
 
-        # Main layout
-        layout = QVBoxLayout(self)
+        # Create tab widget
+        self.tabs = QTabWidget(self)
+
+        # First tab: Basic Settings
+        basic_tab = QWidget()
+        basic_layout = QVBoxLayout(basic_tab)
 
         # Emulator Path
         emu_layout = QHBoxLayout()
@@ -26,12 +30,12 @@ class SettingsDialog(QDialog):
         emu_browse = QPushButton("Browse...")
         emu_browse.clicked.connect(self.browse_emulator)
         emu_layout.addWidget(emu_browse)
-        layout.addLayout(emu_layout)
+        basic_layout.addLayout(emu_layout)
 
         # Scan Folders
-        layout.addWidget(QLabel("Scan Folders:"))
+        basic_layout.addWidget(QLabel("Scan Folders:"))
         self.folder_list = QListWidget()
-        layout.addWidget(self.folder_list)
+        basic_layout.addWidget(self.folder_list)
         folder_btn_layout = QHBoxLayout()
         add_folder_btn = QPushButton("Add Folder")
         add_folder_btn.clicked.connect(self.add_folder)
@@ -39,21 +43,39 @@ class SettingsDialog(QDialog):
         remove_folder_btn.clicked.connect(self.remove_folder)
         folder_btn_layout.addWidget(add_folder_btn)
         folder_btn_layout.addWidget(remove_folder_btn)
-        layout.addLayout(folder_btn_layout)
+        basic_layout.addLayout(folder_btn_layout)
 
         # Theme Selector
-        layout.addWidget(QLabel("Theme:"))
+        basic_layout.addWidget(QLabel("Theme:"))
         theme_layout = QHBoxLayout()
         self.theme_combo = QComboBox()
         self.theme_combo.addItems(["System Default", "Light", "Dark", "Xbox 360", "Lavender Teal"])
         theme_layout.addWidget(self.theme_combo)
-        layout.addLayout(theme_layout)
+        basic_layout.addLayout(theme_layout)
 
-        # Dialog Buttons
+        # Add basic tab to tabs
+        self.tabs.addTab(basic_tab, "General")
+
+        # Second tab: Emulator Settings
+        emu_tab = QWidget()
+        emu_layout_tab = QVBoxLayout(emu_tab)
+        emu_layout_tab.addWidget(QLabel("Xenia Canary Emulator Settings"))
+        # Placeholder for emulator-specific settings; add controls here
+        # e.g., a checkbox or input for emulator configuration
+        # emu_layout_tab.addWidget(QLabel("Option 1: ..."))
+
+        # Add emulator settings tab
+        self.tabs.addTab(emu_tab, "Emulator")
+
+        # Main layout for dialog
+        main_layout = QVBoxLayout(self)
+        main_layout.addWidget(self.tabs)
+
+        # Dialog Buttons at bottom
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
+        main_layout.addWidget(buttons)
 
         self.load_settings()
 
