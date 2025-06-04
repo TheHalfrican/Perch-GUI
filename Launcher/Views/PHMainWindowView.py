@@ -8,8 +8,9 @@ from PySide6.QtWidgets import (
     QLineEdit, QPushButton
 )
 from PySide6.QtGui import QAction, QIcon, QPalette, QColor
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QFileSystemWatcher
 from Launcher.ViewModels.PHMainWindowViewModel import MainWindowViewModel
+from Launcher.ViewModels.PHSettingsDialogViewModel import SettingsDialogViewModel
 from Launcher.Views.PHGameWidgetView import GameWidgetView
 from Launcher.Views.PHGameListView import GameListView
 from Launcher.Views.PHSettingsDialogView import SettingsDialog
@@ -28,6 +29,16 @@ class MainWindowView(QMainWindow):
         self.vm = MainWindowViewModel()
         # Instantiate Controller
         self.controller = MainWindowController(self.vm)
+
+        # ─── Watch Folders for Automatic Library Refresh ───────────────────
+        self.fs_watcher = QFileSystemWatcher(self)
+        # Start by watching all scan‐folders in the ViewModel
+        self._reset_watch_paths()
+
+        # Whenever any watched directory changes (new file/ISO added, renamed, or removed),
+        # trigger a library refresh
+        self.fs_watcher.directoryChanged.connect(self._on_folder_changed)
+        self.fs_watcher.fileChanged.connect(self._on_folder_changed)
 
         # Apply the selected theme
         apply_theme(QApplication.instance())
@@ -192,6 +203,10 @@ class MainWindowView(QMainWindow):
         if dialog.exec() == QDialog.Accepted:
             apply_theme(QApplication.instance())
             self.vm = MainWindowViewModel()
+            # Re-watch whatever folder the user just saved
+            self._reset_watch_paths()
+         # Update search bar placeholder color … 
+            self.populate_grid()
             # Update search bar placeholder color after theme change
             new_theme = self.vm.config.get('appearance', 'theme', fallback='System Default')
             palette = self.search_bar.palette()
@@ -297,5 +312,44 @@ class MainWindowView(QMainWindow):
         self.current_selected_widget = widget
 
     def open_gamepad_config(self):
-     dialog = GamepadConfigView(self)
-     dialog.exec()
+        dialog = GamepadConfigView(self)
+        dialog.exec()
+
+    def _reset_watch_paths(self):
+        """
+        Replace the QFileSystemWatcher’s watched paths with the current scan_folders from settings.
+        """
+        # Remove old paths
+        for p in self.fs_watcher.directories():
+            self.fs_watcher.removePath(p)
+        for f in self.fs_watcher.files():
+            self.fs_watcher.removePath(f)
+
+        # Load scan folders from Settings ViewModel
+        settings_vm = SettingsDialogViewModel()
+        for folder in settings_vm.scan_folders:
+            try:
+                folder_path = Path(folder)
+                if not folder_path.exists() or not folder_path.is_dir():
+                    continue
+                # Watch the folder itself
+                self.fs_watcher.addPath(folder)
+                # Also watch each file inside
+                for child in folder_path.iterdir():
+                    if child.is_file():
+                        self.fs_watcher.addPath(str(child))
+            except Exception:
+                # Skip any paths that cause errors (e.g., invalid paths)
+                continue
+
+    def _on_folder_changed(self, path):
+        """
+        Called whenever a watched directory/file changes on disk.
+        Refresh the VM’s game list and repopulate whichever view is visible.
+        """
+        # Rescan the library, update VM, then re-render
+        self.vm.refresh_games()
+        if self.vm.list_mode:
+            self.populate_list()
+        else:
+            self.populate_grid()
