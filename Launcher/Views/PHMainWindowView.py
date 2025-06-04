@@ -94,14 +94,20 @@ class MainWindowView(QMainWindow):
         # Main layout
         main_widget = QWidget()
         main_layout = QVBoxLayout(main_widget)
-        slider_layout = QHBoxLayout()
-        slider_layout.addStretch()
-        slider_layout.addWidget(self.slider)
-        main_layout.addLayout(slider_layout)
-        self.slider.setFixedWidth(self.width() // 4)
+
+        # --- Top row layout: view buttons + slider, slider right of buttons, stretch at end ---
+        top_row_layout = QHBoxLayout()
 
         # View mode buttons
         view_buttons_layout = QHBoxLayout()
+        # Settings Button
+        self.settings_button = QPushButton()
+        self.settings_button.setIcon(QIcon("Assets/settings_icon.png"))
+        self.settings_button.setToolTip("Settings")
+        self.settings_button.setFixedSize(48, 48)
+        self.settings_button.setIconSize(QSize(48, 48))
+        self.settings_button.clicked.connect(self.open_settings)
+        view_buttons_layout.addWidget(self.settings_button)
         # Grid button
         self.grid_button = QPushButton()
         self.grid_button.setIcon(QIcon('assets/grid_icon.png'))
@@ -118,10 +124,32 @@ class MainWindowView(QMainWindow):
         self.list_button.setIconSize(QSize(48, 48))
         self.list_button.clicked.connect(self.populate_list)
         view_buttons_layout.addWidget(self.list_button)
+        # Game Titles toggle button
+        self.title_toggle_button = QPushButton()
+        self.title_toggle_button.setIcon(QIcon('assets/tag_icon.png'))
+        self.title_toggle_button.setToolTip("Toggle Game Titles")
+        self.title_toggle_button.setFixedSize(48, 48)
+        self.title_toggle_button.setIconSize(QSize(48, 48))
+        self.title_toggle_button.setCheckable(True)
+        self.title_toggle_button.setChecked(self.vm.show_titles)
+        self.title_toggle_button.toggled.connect(self.on_toggle_titles)
+        view_buttons_layout.addWidget(self.title_toggle_button)
         # Align buttons to left
         view_buttons_layout.setAlignment(Qt.AlignLeft)
-        main_layout.addLayout(view_buttons_layout)
-        main_layout.addWidget(self.search_bar)
+
+        top_row_layout.addLayout(view_buttons_layout)
+        top_row_layout.addWidget(self.slider)
+        self.slider.setFixedWidth(self.width() // 4)
+        top_row_layout.addStretch()
+
+        main_layout.addLayout(top_row_layout)
+
+        # Search bar layout: right-aligned, one quarter window width
+        search_layout = QHBoxLayout()
+        search_layout.addStretch()
+        search_layout.addWidget(self.search_bar)
+        self.search_bar.setFixedWidth(self.width() // 4)
+        main_layout.addLayout(search_layout)
 
 
         # Scrollable grid container
@@ -215,6 +243,7 @@ class MainWindowView(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.slider.setFixedWidth(self.width() // 4)
+        self.search_bar.setFixedWidth(self.width() // 4)
         if self.vm.list_mode:
             # Refresh list view without switching to grid
             self.list_view.refresh_list(self.vm.current_filter)
