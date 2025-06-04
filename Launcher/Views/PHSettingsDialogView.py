@@ -1,8 +1,10 @@
 # Launcher/Views/PHSettingsDialogView.py
 from pathlib import Path
+import os
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QListWidget, QDialogButtonBox, QFileDialog, QComboBox, QTabWidget, QWidget
+    QListWidget, QDialogButtonBox, QFileDialog, QComboBox, QTabWidget,
+    QWidget, QCheckBox, QSpinBox, QGroupBox, QFormLayout
 )
 from PySide6.QtCore import Qt
 from Launcher.ViewModels.PHSettingsDialogViewModel import SettingsDialogViewModel
@@ -60,9 +62,139 @@ class SettingsDialog(QDialog):
         emu_tab = QWidget()
         emu_layout_tab = QVBoxLayout(emu_tab)
         emu_layout_tab.addWidget(QLabel("Xenia Canary Emulator Settings"))
-        # Placeholder for emulator-specific settings; add controls here
-        # e.g., a checkbox or input for emulator configuration
-        # emu_layout_tab.addWidget(QLabel("Option 1: ..."))
+
+        # ─── 1. Master Section ────────────────────────────────────────────────
+        master_box = QGroupBox("General (Master)")
+        master_layout = QFormLayout(master_box)
+        master_layout.setLabelAlignment(Qt.AlignLeft)
+        master_layout.setFormAlignment(Qt.AlignTop)
+
+        # license_mask: Deactivated (0) vs. Activated (1)
+        self.license_combo = QComboBox()
+        self.license_combo.addItems(["Deactivated (0)", "Activated (1)"])
+        master_layout.addRow("License Mode:", self.license_combo)
+
+        # user_language: a few common codes
+        self.language_combo = QComboBox()
+        self.language_combo.addItems([
+            "English (1)", "Japanese (2)", "German (3)", "French (4)",
+            "Spanish (5)", "Italian (6)", "Korean (7)", "Chinese (8)"
+        ])
+        master_layout.addRow("User Language:", self.language_combo)
+
+        # mount_cache: improves compatibility
+        self.mount_cache_checkbox = QCheckBox("Mount Cache (improves compatibility)")
+        master_layout.addRow("", self.mount_cache_checkbox)
+
+        emu_layout_tab.addWidget(master_box)
+        emu_layout_tab.addSpacing(10)
+
+        # ─── 2. GPU Section ─────────────────────────────────────────────────
+        gpu_box = QGroupBox("GPU / Renderer")
+        gpu_layout = QFormLayout(gpu_box)
+        gpu_layout.setLabelAlignment(Qt.AlignLeft)
+        gpu_layout.setFormAlignment(Qt.AlignTop)
+
+        # Renderer/Backend: “any”, “d3d12”, “vulkan”
+        self.renderer_combo = QComboBox()
+        self.renderer_combo.addItems(["any", "d3d12", "vulkan"])
+        gpu_layout.addRow("Renderer / Backend:", self.renderer_combo)
+
+        # Variable refresh (only relevant for D3D12)
+        self.vsync_checkbox = QCheckBox("Allow Variable Refresh Rate & Tearing (d3d12)")
+        gpu_layout.addRow("", self.vsync_checkbox)
+
+        # Black bars: letterbox/pillarbox on mismatched aspect
+        self.blackbars_checkbox = QCheckBox("Use Black Bars (letterbox/pillarbox)")
+        gpu_layout.addRow("", self.blackbars_checkbox)
+
+        emu_layout_tab.addWidget(gpu_box)
+        emu_layout_tab.addSpacing(10)
+
+        # ─── 3. HID (Input) Section ──────────────────────────────────────────
+        input_box = QGroupBox("Input (HID)")
+        input_layout = QFormLayout(input_box)
+        input_layout.setLabelAlignment(Qt.AlignLeft)
+        input_layout.setFormAlignment(Qt.AlignTop)
+
+        # Keyboard Mode: “XInput”, “Keyboard”, “RawInput”
+        self.keyboard_mode_combo = QComboBox()
+        self.keyboard_mode_combo.addItems(["XInput", "Keyboard", "RawInput"])
+        input_layout.addRow("Keyboard Mode:", self.keyboard_mode_combo)
+
+        # Assigned Keyboard Slot: “0”–“3”
+        self.keyboard_slot_spin = QSpinBox()
+        self.keyboard_slot_spin.setRange(0, 3)
+        self.keyboard_slot_spin.setSuffix(" (Player Slot)")
+        input_layout.addRow("Assigned Keyboard Slot:", self.keyboard_slot_spin)
+
+        emu_layout_tab.addWidget(input_box)
+        emu_layout_tab.addSpacing(10)
+
+        # ─── 4. Hacks (General) Section ──────────────────────────────────────
+        hacks_box = QGroupBox("General Hacks")
+        hacks_layout = QFormLayout(hacks_box)
+        hacks_layout.setLabelAlignment(Qt.AlignLeft)
+        hacks_layout.setFormAlignment(Qt.AlignTop)
+
+        # protect_zero: prevent null-pointer crashes
+        self.protect_zero_checkbox = QCheckBox("Protect Zero (prevent null‐ptr crashes)")
+        hacks_layout.addRow("", self.protect_zero_checkbox)
+
+        # break_on_unimplemented_instruction: for debugging
+        self.break_on_unimpl_checkbox = QCheckBox("Break on Unimplemented Instruction")
+        hacks_layout.addRow("", self.break_on_unimpl_checkbox)
+
+        emu_layout_tab.addWidget(hacks_box)
+        emu_layout_tab.addSpacing(10)
+
+        # ─── 5. Canary-Only Video Section ────────────────────────────────────
+        canary_video_box = QGroupBox("Canary Video Settings")
+        canary_video_layout = QFormLayout(canary_video_box)
+        canary_video_layout.setLabelAlignment(Qt.AlignLeft)
+        canary_video_layout.setFormAlignment(Qt.AlignTop)
+
+        # Vsync FPS: “off”, “60”, “30”, “120”
+        self.vsync_fps_combo = QComboBox()
+        self.vsync_fps_combo.addItems(["off", "60", "30", "120"])
+        canary_video_layout.addRow("Vsync FPS:", self.vsync_fps_combo)
+
+        # Internal display resolution: “720p”, “1080p”, “1440p”, “4K”
+        self.resolution_combo = QComboBox()
+        self.resolution_combo.addItems(["720p", "1080p", "1440p", "4K"])
+        canary_video_layout.addRow("Internal Display Resolution:", self.resolution_combo)
+
+        # avpack: video mode ID
+        self.avpack_line = QLineEdit()
+        self.avpack_line.setPlaceholderText("avpack (e.g. \"XX81169X\")")
+        canary_video_layout.addRow("AVPack (video mode ID):", self.avpack_line)
+
+        emu_layout_tab.addWidget(canary_video_box)
+        emu_layout_tab.addSpacing(10)
+
+        # ─── 6. Canary-Only Hacks Section ────────────────────────────────────
+        canary_hacks_box = QGroupBox("Canary Hacks")
+        canary_hacks_layout = QFormLayout(canary_hacks_box)
+        canary_hacks_layout.setLabelAlignment(Qt.AlignLeft)
+        canary_hacks_layout.setFormAlignment(Qt.AlignTop)
+
+        # Max queued frames: integer 1–10
+        self.max_queued_spin = QSpinBox()
+        self.max_queued_spin.setRange(1, 10)
+        self.max_queued_spin.setSuffix(" Frames")
+        canary_hacks_layout.addRow("Max Queued Frames:", self.max_queued_spin)
+
+        # Clear GPU cache button
+        self.clear_gpu_button = QPushButton("Clear GPU Cache Now")
+        canary_hacks_layout.addRow("", self.clear_gpu_button)
+
+        # Reset to default emulator settings button
+        self.reset_defaults_button = QPushButton("Reset to Default Emulator Settings")
+        self.reset_defaults_button.clicked.connect(self.on_reset_defaults)
+        canary_hacks_layout.addRow("", self.reset_defaults_button)
+
+        emu_layout_tab.addWidget(canary_hacks_box)
+        emu_layout_tab.addSpacing(10)
 
         # Add emulator settings tab
         self.tabs.addTab(emu_tab, "Emulator")
@@ -92,6 +224,47 @@ class SettingsDialog(QDialog):
         idx = self.theme_combo.findText(self.vm.theme)
         if idx >= 0:
             self.theme_combo.setCurrentIndex(idx)
+
+        # Load Emulator-specific settings
+        # Master Section
+        self.license_combo.setCurrentIndex(self.vm.license_mask)
+        # Find language string matching user_language
+        lang_index = self.language_combo.findText(
+            next((label for label in [self.language_combo.itemText(i) for i in range(self.language_combo.count())]
+                  if label.endswith(f"({self.vm.user_language})")), "")
+        )
+        if lang_index >= 0:
+            self.language_combo.setCurrentIndex(lang_index)
+        self.mount_cache_checkbox.setChecked(self.vm.mount_cache)
+
+        # GPU Section
+        idx_renderer = self.renderer_combo.findText(self.vm.renderer)
+        if idx_renderer >= 0:
+            self.renderer_combo.setCurrentIndex(idx_renderer)
+        self.vsync_checkbox.setChecked(self.vm.allow_variable_refresh)
+        self.blackbars_checkbox.setChecked(self.vm.black_bars)
+
+        # Input Section
+        idx_kb_mode = self.keyboard_mode_combo.findText(self.vm.keyboard_mode)
+        if idx_kb_mode >= 0:
+            self.keyboard_mode_combo.setCurrentIndex(idx_kb_mode)
+        self.keyboard_slot_spin.setValue(self.vm.keyboard_slot)
+
+        # Hacks Section
+        self.protect_zero_checkbox.setChecked(self.vm.protect_zero)
+        self.break_on_unimpl_checkbox.setChecked(self.vm.break_on_unimplemented)
+
+        # Canary Video Section
+        idx_vsync_fps = self.vsync_fps_combo.findText(self.vm.vsync_fps)
+        if idx_vsync_fps >= 0:
+            self.vsync_fps_combo.setCurrentIndex(idx_vsync_fps)
+        idx_res = self.resolution_combo.findText(self.vm.internal_resolution)
+        if idx_res >= 0:
+            self.resolution_combo.setCurrentIndex(idx_res)
+        self.avpack_line.setText(self.vm.avpack)
+
+        # Canary Hacks Section
+        self.max_queued_spin.setValue(self.vm.max_queued_frames)
 
     def browse_emulator(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -123,6 +296,43 @@ class SettingsDialog(QDialog):
         # Save theme
         self.vm.theme = self.theme_combo.currentText()
 
+        # Save Emulator-specific settings
+        # Master Section
+        license_text = self.license_combo.currentText()
+        license_val = int(license_text.split()[-1].strip("()"))
+        self.vm.license_mask = license_val
+
+        language_text = self.language_combo.currentText()
+        lang_val = int(language_text.split()[-1].strip("()"))
+        self.vm.user_language = lang_val
+
+        self.vm.mount_cache = self.mount_cache_checkbox.isChecked()
+
+        # GPU Section
+        self.vm.renderer = self.renderer_combo.currentText()
+        self.vm.allow_variable_refresh = self.vsync_checkbox.isChecked()
+        self.vm.black_bars = self.blackbars_checkbox.isChecked()
+
+        # Input Section
+        self.vm.keyboard_mode = self.keyboard_mode_combo.currentText()
+        self.vm.keyboard_slot = self.keyboard_slot_spin.value()
+
+        # Hacks Section
+        self.vm.protect_zero = self.protect_zero_checkbox.isChecked()
+        self.vm.break_on_unimplemented = self.break_on_unimpl_checkbox.isChecked()
+
+        # Canary Video Section
+        self.vm.vsync_fps = self.vsync_fps_combo.currentText()
+        self.vm.internal_resolution = self.resolution_combo.currentText()
+        self.vm.avpack = self.avpack_line.text()
+
+        # Canary Hacks Section
+        self.vm.max_queued_frames = self.max_queued_spin.value()
+
     def accept(self):
         self.save_settings()
         super().accept()
+    def on_reset_defaults(self):
+        # Reset only emulator-specific settings
+        self.vm.reset_emulator_settings()
+        self.load_settings()
