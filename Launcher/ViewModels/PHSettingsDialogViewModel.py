@@ -72,6 +72,41 @@ class SettingsDialogViewModel:
     def _write_xenia_toml(self):
         self.toml_path.write_text(toml.dumps(self.toml_data))
 
+    # ─── Custom Theme Colors ──────────────────────────────────────────────
+
+    @property
+    def custom_bg_color(self) -> str:
+        return self.config.get("CustomTheme", "bg_color", fallback="")
+
+    @custom_bg_color.setter
+    def custom_bg_color(self, val: str):
+        if not self.config.has_section("CustomTheme"):
+            self.config.add_section("CustomTheme")
+        self.config.set("CustomTheme", "bg_color", val)
+        self._write_config()
+
+    @property
+    def custom_text_color(self) -> str:
+        return self.config.get("CustomTheme", "text_color", fallback="")
+
+    @custom_text_color.setter
+    def custom_text_color(self, val: str):
+        if not self.config.has_section("CustomTheme"):
+            self.config.add_section("CustomTheme")
+        self.config.set("CustomTheme", "text_color", val)
+        self._write_config()
+
+    @property
+    def custom_accent_color(self) -> str:
+        return self.config.get("CustomTheme", "accent_color", fallback="")
+
+    @custom_accent_color.setter
+    def custom_accent_color(self, val: str):
+        if not self.config.has_section("CustomTheme"):
+            self.config.add_section("CustomTheme")
+        self.config.set("CustomTheme", "accent_color", val)
+        self._write_config()
+
     # ─── Master Section ──────────────────────────────────────────────────
 
     @property

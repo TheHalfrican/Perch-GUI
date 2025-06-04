@@ -41,7 +41,8 @@ class MainWindowView(QMainWindow):
         self.fs_watcher.fileChanged.connect(self._on_folder_changed)
 
         # Apply the selected theme
-        apply_theme(QApplication.instance())
+        settings_vm = SettingsDialogViewModel()
+        apply_theme(settings_vm.theme)
 
         # Initialize cover dimensions from ViewModel
         self.cover_width = self.vm.cover_width
@@ -201,7 +202,8 @@ class MainWindowView(QMainWindow):
     def open_settings(self):
         dialog = SettingsDialog(self)
         if dialog.exec() == QDialog.Accepted:
-            apply_theme(QApplication.instance())
+            settings_vm = SettingsDialogViewModel()
+            apply_theme(settings_vm.theme)
             self.vm = MainWindowViewModel()
             # Re-watch whatever folder the user just saved
             self._reset_watch_paths()

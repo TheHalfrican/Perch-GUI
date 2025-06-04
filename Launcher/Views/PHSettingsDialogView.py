@@ -51,10 +51,20 @@ class SettingsDialog(QDialog):
         basic_layout.addWidget(QLabel("Theme:"))
         theme_layout = QHBoxLayout()
         self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["System Default", "Light", "Dark", "Xbox 360", "Lavender Teal"])
+        self.theme_combo.addItems(["System Default", "Light", "Dark", "Xbox 360", "Lavender Teal", "Custom"])
         theme_layout.addWidget(self.theme_combo)
         basic_layout.addLayout(theme_layout)
 
+        # Custom Theme
+        self.edit_custom_btn = QPushButton("Edit Custom Theme…")
+        self.edit_custom_btn.setEnabled(False)
+        self.edit_custom_btn.clicked.connect(self.open_custom_theme_editor)
+        basic_layout.addWidget(self.edit_custom_btn)
+
+        # Then hook up a signal so it only enables for “Custom”
+        self.theme_combo.currentTextChanged.connect(
+            lambda text: self.edit_custom_btn.setEnabled(text == "Custom")
+        )
         # Add basic tab to tabs
         self.tabs.addTab(basic_tab, "General")
 
@@ -336,3 +346,8 @@ class SettingsDialog(QDialog):
         # Reset only emulator-specific settings
         self.vm.reset_emulator_settings()
         self.load_settings()
+
+    def open_custom_theme_editor(self):
+        from Launcher.Views.PHCustomThemeEditorView import CustomThemeEditorDialog
+        dlg = CustomThemeEditorDialog(self, self.vm)
+        dlg.exec()

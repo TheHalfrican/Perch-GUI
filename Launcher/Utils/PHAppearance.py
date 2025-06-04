@@ -3,22 +3,20 @@ from pathlib import Path
 from PySide6.QtGui import QPalette, QColor
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
+from Launcher.ViewModels.PHSettingsDialogViewModel import SettingsDialogViewModel
 
-def apply_theme(app: QApplication):
+def apply_theme(theme_name: str):
     """Apply the selected theme palette to the QApplication instance."""
-    # Read theme from config.ini
-    config = configparser.ConfigParser()
-    config.read(Path(__file__).parents[2] / 'config.ini')
-    theme = config.get('appearance', 'theme', fallback='System Default')
+    app = QApplication.instance()
 
     # Use Fusion style for consistency
     app.setStyle('Fusion')
 
-    if theme == 'System Default':
+    if theme_name == 'System Default':
         # Native palette
         app.setPalette(app.style().standardPalette())
 
-    elif theme == 'Light':
+    elif theme_name == 'Light':
         # Off-white/light theme
         light = QPalette()
         light.setColor(QPalette.Window, QColor(245, 245, 245))
@@ -31,7 +29,7 @@ def apply_theme(app: QApplication):
         light.setColor(QPalette.HighlightedText, Qt.white)
         app.setPalette(light)
 
-    elif theme == 'Dark':
+    elif theme_name == 'Dark':
         # Pure black/dark theme
         dark = QPalette()
         dark.setColor(QPalette.Window, QColor(0, 0, 0))
@@ -44,7 +42,7 @@ def apply_theme(app: QApplication):
         dark.setColor(QPalette.HighlightedText, Qt.black)
         app.setPalette(dark)
 
-    elif theme == 'Xbox 360':
+    elif theme_name == 'Xbox 360':
         # Classic Xbox 360 colors: grays, green highlights, orange accents
         xbox = QPalette()
         xbox.setColor(QPalette.Window, QColor(14, 122, 13))
@@ -61,7 +59,7 @@ def apply_theme(app: QApplication):
         xbox.setColor(QPalette.LinkVisited, QColor(200, 80, 0))
         app.setPalette(xbox)
 
-    elif theme == 'Lavender Teal':
+    elif theme_name == 'Lavender Teal':
         # Lavender and Teal theme
         lt = QPalette()
         # Lavender background
@@ -78,3 +76,21 @@ def apply_theme(app: QApplication):
         lt.setColor(QPalette.Link, QColor(  0, 150, 150))
         lt.setColor(QPalette.LinkVisited, QColor(  0, 120, 120))
         app.setPalette(lt)
+
+    elif theme_name == 'Custom':
+        # Load custom colors from settings
+        vm = SettingsDialogViewModel()
+        bg_color = vm.custom_bg_color or "#ffffff"
+        text_color = vm.custom_text_color or "#000000"
+        accent_color = vm.custom_accent_color or "#0078d7"
+
+        custom = QPalette()
+        custom.setColor(QPalette.Window, QColor(bg_color))
+        custom.setColor(QPalette.WindowText, QColor(text_color))
+        custom.setColor(QPalette.Base, QColor(bg_color))
+        custom.setColor(QPalette.Text, QColor(text_color))
+        custom.setColor(QPalette.Button, QColor(bg_color))
+        custom.setColor(QPalette.ButtonText, QColor(text_color))
+        custom.setColor(QPalette.Highlight, QColor(accent_color))
+        custom.setColor(QPalette.HighlightedText, QColor(text_color))
+        app.setPalette(custom)
