@@ -13,6 +13,7 @@ from Launcher.ViewModels.PHMainWindowViewModel import MainWindowViewModel
 from Launcher.Views.PHGameWidgetView import GameWidgetView
 from Launcher.Views.PHGameListView import GameListView
 from Launcher.Views.PHSettingsDialogView import SettingsDialog
+from Launcher.Views.PHGamepadConfigView import GamepadConfigView
 from Launcher.Utils.PHAppearance import apply_theme
 from Launcher.Controllers.PHMainWindowController import MainWindowController
 
@@ -71,6 +72,9 @@ class MainWindowView(QMainWindow):
         settings_action = QAction("Settings...", self)
         settings_action.triggered.connect(self.open_settings)
         system_menu.addAction(settings_action)
+        input_action = QAction("Controller Settings...", self)
+        input_action.triggered.connect(self.open_gamepad_config)
+        system_menu.addAction(input_action)
         file_menu.addSeparator()
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close)
@@ -108,6 +112,14 @@ class MainWindowView(QMainWindow):
         self.settings_button.setIconSize(QSize(48, 48))
         self.settings_button.clicked.connect(self.open_settings)
         view_buttons_layout.addWidget(self.settings_button)
+        # Controller Configuration Button
+        self.controller_config_button = QPushButton()
+        self.controller_config_button.setIcon(QIcon("Assets/controller_config_icon.png"))
+        self.controller_config_button.setToolTip("Controller Config")
+        self.controller_config_button.setFixedSize(48, 48)
+        self.controller_config_button.setIconSize(QSize(48, 48))
+        self.controller_config_button.clicked.connect(self.open_gamepad_config)
+        view_buttons_layout.addWidget(self.controller_config_button)
         # Grid button
         self.grid_button = QPushButton()
         self.grid_button.setIcon(QIcon('assets/grid_icon.png'))
@@ -283,3 +295,7 @@ class MainWindowView(QMainWindow):
         # Highlight new selection
         widget.setStyleSheet("border: 2px solid #FFD700;")
         self.current_selected_widget = widget
+
+    def open_gamepad_config(self):
+     dialog = GamepadConfigView(self)
+     dialog.exec()
