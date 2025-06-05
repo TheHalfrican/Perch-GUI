@@ -200,15 +200,23 @@ class MainWindowView(QMainWindow):
         self.populate_grid()
 
     def open_settings(self):
+
+        # Remember whether we were in grid mode or list mode
+        was_list = self.vm.list_mode
+
         dialog = SettingsDialog(self)
         if dialog.exec() == QDialog.Accepted:
+            # Reapply theme based on settings
             settings_vm = SettingsDialogViewModel()
             apply_theme(settings_vm.theme)
+
+            # Re-create the main ViewModel and re-watch folders
             self.vm = MainWindowViewModel()
-            # Re-watch whatever folder the user just saved
             self._reset_watch_paths()
-         # Update search bar placeholder color … 
-            self.populate_grid()
+
+            # Restore whichever view (grid or list) was active before opening Settings
+            self.vm.list_mode = was_list
+
             # Update search bar placeholder color after theme change
             new_theme = self.vm.config.get('appearance', 'theme', fallback='System Default')
             palette = self.search_bar.palette()
@@ -219,7 +227,12 @@ class MainWindowView(QMainWindow):
                 self.search_bar.setStyleSheet("QLineEdit { color: black; }")
                 palette.setColor(QPalette.PlaceholderText, QColor("darkgray"))
             self.search_bar.setPalette(palette)
-            self.populate_grid()
+
+            # Refresh whichever view is active
+            if self.vm.list_mode:
+                self.populate_list()
+            else:
+                self.populate_grid()
 
     def populate_grid(self):
         self.vm.set_list_mode(False)
@@ -228,6 +241,7 @@ class MainWindowView(QMainWindow):
         self.list_view.setVisible(False)
         # Show slider in grid view
         self.slider.setVisible(True)
+        self.title_toggle_button.setVisible(True)
 
         # Clear existing items
         for i in reversed(range(self.grid.count())):
@@ -303,6 +317,7 @@ class MainWindowView(QMainWindow):
         self.scroll.setVisible(False)
         self.list_view.setVisible(True)
         self.slider.setVisible(False)
+        self.title_toggle_button.setVisible(False)
         self.list_view.refresh_list(self.vm.current_filter)
 
     def on_game_clicked(self, widget):
