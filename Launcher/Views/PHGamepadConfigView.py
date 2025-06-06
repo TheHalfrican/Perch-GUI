@@ -1,10 +1,11 @@
 # Launcher/Views/PHGamepadConfigView.py
-from pathlib import Path
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QFormLayout, QLabel, QComboBox, QSpinBox, QDialogButtonBox
+    QDialog, QVBoxLayout, QFormLayout, QComboBox, QSpinBox, QDialogButtonBox
 )
 from PySide6.QtCore import Qt
 from Launcher.ViewModels.PHSettingsDialogViewModel import SettingsDialogViewModel
+import configparser
+from Launcher.Utils.Utils import get_user_config_path
 
 class GamepadConfigView(QDialog):
     def __init__(self, parent=None):
@@ -43,16 +44,42 @@ class GamepadConfigView(QDialog):
         self.load_settings()
 
     def load_settings(self):
-        # Load from ViewModel
-        idx_kb_mode = self.keyboard_mode_combo.findText(self.vm.keyboard_mode)
+        """
+        Load controller settings from the user-writable INI file.
+        """
+        ini_path = get_user_config_path()
+        config = configparser.ConfigParser()
+        if ini_path.exists():
+            config.read(str(ini_path))
+
+        # Keyboard Mode
+        keyboard_mode = config.get("input", "keyboard_mode", fallback="XInput")
+        idx_kb_mode = self.keyboard_mode_combo.findText(keyboard_mode)
         if idx_kb_mode >= 0:
             self.keyboard_mode_combo.setCurrentIndex(idx_kb_mode)
-        self.keyboard_slot_spin.setValue(self.vm.keyboard_slot)
+
+        # Keyboard Slot
+        keyboard_slot = config.getint("input", "keyboard_slot", fallback=0)
+        self.keyboard_slot_spin.setValue(keyboard_slot)
 
     def save_settings(self):
-        # Write back to ViewModel
-        self.vm.keyboard_mode = self.keyboard_mode_combo.currentText()
-        self.vm.keyboard_slot = self.keyboard_slot_spin.value()
+        """
+        Save controller settings back to the INI file.
+        """
+        ini_path = get_user_config_path()
+        config = configparser.ConfigParser()
+        if ini_path.exists():
+            config.read(str(ini_path))
+
+        # Ensure sections exist
+        if not config.has_section("input"):
+            config.add_section("input")
+
+        config.set("input", "keyboard_mode", self.keyboard_mode_combo.currentText())
+        config.set("input", "keyboard_slot", str(self.keyboard_slot_spin.value()))
+
+        with open(ini_path, 'w') as f:
+            config.write(f)
 
     def accept(self):
         self.save_settings()

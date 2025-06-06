@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 from Launcher.DB.PHDatabase import DB_PATH
-from Launcher.Utils.Utils import get_user_config_path
+from Launcher.Utils.Utils import get_user_config_path, launch_xenia_with_flags
 import configparser
 
 class GameWidgetController:
@@ -27,8 +27,13 @@ class GameWidgetController:
 
     def launch_game(self):
         file_path = self.get_file_path()
-        if file_path and self.emulator_path:
-            subprocess.Popen([str(self.emulator_path), file_path])
+        if file_path:
+            try:
+                launch_xenia_with_flags(file_path)
+            except Exception as e:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(None, "Launch Error", str(e))
+                return
             # Update play_count and last_played in the database
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
@@ -60,6 +65,17 @@ class GameWidgetController:
         cursor.execute(
             "UPDATE games SET cover_path = ? WHERE id = ?",
             (cover_path, self.game_id)
+        )
+        conn.commit()
+        conn.close()
+
+    def remove_cover(self):
+        """Remove the cover art for this game by setting cover_path to an empty string."""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE games SET cover_path = '' WHERE id = ?",
+            (self.game_id,)
         )
         conn.commit()
         conn.close()

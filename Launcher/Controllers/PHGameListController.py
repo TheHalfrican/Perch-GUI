@@ -3,7 +3,7 @@ import os
 import sys
 import sqlite3
 from Launcher.DB.PHDatabase import DB_PATH
-from Launcher.Utils.Utils import get_user_config_path
+from Launcher.Utils.Utils import get_user_config_path, launch_xenia_with_flags
 import configparser
 
 class GameListController:
@@ -32,8 +32,13 @@ class GameListController:
        # Launch the given game ID via Xenia.
         
         file_path = self._get_file_path(game_id)
-        if file_path and self.emulator_path:
-            subprocess.Popen([self.emulator_path, file_path])
+        if file_path:
+            try:
+                launch_xenia_with_flags(file_path)
+            except Exception as e:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(None, "Launch Error", str(e))
+                return
             # Update play_count and last_played in the database
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()

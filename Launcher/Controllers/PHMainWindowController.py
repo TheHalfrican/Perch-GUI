@@ -5,6 +5,7 @@ import sys
 from Launcher.ViewModels.PHMainWindowViewModel import MainWindowViewModel
 from Launcher.DB.PHDatabase import DB_PATH
 import sqlite3
+from Launcher.Utils.Utils import launch_xenia_with_flags
 
 class MainWindowController:
     def __init__(self, view_model: MainWindowViewModel):
@@ -33,30 +34,30 @@ class MainWindowController:
         self.vm.refresh_games()
 
     def launch_game(self, game_id: int):
-        
+        """
        # Launch the game using the emulator path stored in the ViewModel.
-        
+        """
         file_path = self.vm.game_library_vm.get_file_path(game_id)
         if file_path:
-            emulator_path = self.vm.game_library_vm.emulator_path if hasattr(self.vm.game_library_vm, 'emulator_path') else None
-            # If ViewModel doesn't provide emulator_path directly, assume it's stored in config
-            if not emulator_path:
-                emulator_path = self.vm.config.get('paths', 'xenia_path', fallback=None)
-            if emulator_path:
-                subprocess.Popen([emulator_path, file_path])
-                # Update play_count and last_played in the database
-                conn = sqlite3.connect(DB_PATH)
-                cursor = conn.cursor()
-                cursor.execute(
-                    """
-                    UPDATE games
-                       SET play_count = play_count + 1,
-                           last_played = datetime('now')
-                     WHERE id = ?
-                    """, (game_id,)
-                )
-                conn.commit()
-                conn.close()
+            try:
+                launch_xenia_with_flags(file_path)
+            except Exception as e:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(None, "Launch Error", str(e))
+                return
+            # Update play_count and last_played in the database
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE games
+                   SET play_count = play_count + 1,
+                       last_played = datetime('now')
+                 WHERE id = ?
+                """, (game_id,)
+            )
+            conn.commit()
+            conn.close()
 
     def reveal_in_file_browser(self, game_id: int):
         

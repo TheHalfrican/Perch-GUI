@@ -59,3 +59,35 @@ class GameLibraryViewModel:
         rows = cursor.fetchall()
         conn.close()
         return [PHGameModel(*row) for row in rows]
+
+    def delete_game(self, game_id: int):
+        """
+        Remove a game from the database by its ID.
+        """
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM games WHERE id = ?", (game_id,))
+        conn.commit()
+        conn.close()
+
+    def update_cover(self, game_id: int, cover_path: str):
+        """
+        Update the cover_path for a game in the database.
+        """
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE games SET cover_path = ? WHERE id = ?",
+            (cover_path, game_id)
+        )
+        conn.commit()
+        conn.close()
+
+    def get_file_path(self, game_id: int) -> str:
+        """Retrieve the file_path for a game by its ID."""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT file_path FROM games WHERE id = ?", (game_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return row[0] if row and row[0] else ""

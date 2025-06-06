@@ -69,6 +69,7 @@ class GameWidgetView(QWidget):
         launch_action = menu.addAction("Launch Game")
         show_action = menu.addAction("Show in File Browser")
         set_cover_action = menu.addAction("Set Cover Image...")
+        remove_cover_img_action = menu.addAction("Remove Cover Image")
         remove_action = menu.addAction("Remove Game from Library")
         selected = menu.exec(event.globalPos())
 
@@ -87,6 +88,12 @@ class GameWidgetView(QWidget):
                 self.controller.set_cover(img_path)
                 self.cover_path = img_path
                 self.set_cover(img_path)
+
+        elif selected == remove_cover_img_action:
+            self.controller.remove_cover()
+            # Update UI to show placeholder
+            self.cover_path = None
+            self.set_cover(None)
 
         elif selected == remove_action:
             confirm = QMessageBox.question(
