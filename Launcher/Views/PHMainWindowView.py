@@ -28,6 +28,9 @@ class MainWindowView(QMainWindow):
         self.current_selected_widget = None
         # Instantiate ViewModel
         self.vm = MainWindowViewModel()
+        # Apply the persisted theme from the ViewModel
+        if self.vm.theme and self.vm.theme != 'System Default':
+            apply_theme(self.vm.theme)
         # Instantiate Controller
         self.controller = MainWindowController(self.vm)
 
@@ -40,10 +43,6 @@ class MainWindowView(QMainWindow):
         # trigger a library refresh
         self.fs_watcher.directoryChanged.connect(self._on_folder_changed)
         self.fs_watcher.fileChanged.connect(self._on_folder_changed)
-
-        # Apply the selected theme
-        settings_vm = SettingsDialogViewModel()
-        apply_theme(settings_vm.theme)
 
         # Initialize cover dimensions from ViewModel
         self.cover_width = self.vm.cover_width
