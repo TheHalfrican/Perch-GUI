@@ -4,19 +4,25 @@ from typing import List
 
 from Launcher.ViewModels.PHGameLibraryViewModel import GameLibraryViewModel
 from Launcher.Models.PHGameModel import PHGameModel
+from Launcher.Utils.Utils import get_user_config_path
 
 class MainWindowViewModel:
     def __init__(self):
-        # Path to config.ini
-        self.config_path = Path(__file__).parents[2] / 'config.ini'
+        # Path to user-writable config.ini
+        self.config_path = get_user_config_path()
         self.config = configparser.ConfigParser()
-        self.config.read(self.config_path)
+        if self.config_path.exists():
+            self.config.read(str(self.config_path))
 
         # Load UI settings
         self.cover_width = self._load_cover_width()
         self.cover_height = int(self.cover_width * 1.5)
         self.show_titles = self.config.getboolean('appearance', 'show_titles', fallback=True)
-        self.list_mode = False  # False = grid, True = list
+        # Load list_mode from INI (default to False)
+        if self.config.has_section('ui'):
+            self.list_mode = self.config.getboolean('ui', 'list_mode', fallback=False)
+        else:
+            self.list_mode = False
         self.current_filter = ''
 
         # Underlying game library VM for data access
@@ -25,8 +31,10 @@ class MainWindowViewModel:
         self._all_games = self.game_library_vm.get_all_games()
 
     def _load_cover_width(self) -> int:
-        if self.config.has_section('ui'):
-            return self.config.getint('ui', 'cover_width', fallback=300)
+        ini_path = self.config_path
+        config = self.config
+        if config.has_section('ui'):
+            return config.getint('ui', 'cover_width', fallback=300)
         return 300
 
     def save_cover_width(self, new_width: int):
@@ -48,6 +56,12 @@ class MainWindowViewModel:
 
     def set_list_mode(self, is_list: bool):
         self.list_mode = is_list
+        # Persist the preference
+        if not self.config.has_section('ui'):
+            self.config.add_section('ui')
+        self.config.set('ui', 'list_mode', str(is_list))
+        with open(self.config_path, 'w') as cfgfile:
+            self.config.write(cfgfile)
 
     def set_filter(self, filter_text: str):
         self.current_filter = filter_text.lower().strip()

@@ -194,7 +194,21 @@ class MainWindowView(QMainWindow):
         main_layout.addWidget(self.list_view)
 
         self.setCentralWidget(main_widget)
-        self.populate_grid()
+        # Show the correct view based on persisted list_mode
+        if self.vm.list_mode:
+            # Show list view
+            self.scroll.setVisible(False)
+            self.list_view.setVisible(True)
+            self.slider.setVisible(False)
+            self.title_toggle_button.setVisible(False)
+            self.list_view.refresh_list(self.vm.current_filter)
+        else:
+            # Show grid view
+            self.scroll.setVisible(True)
+            self.list_view.setVisible(False)
+            self.slider.setVisible(True)
+            self.title_toggle_button.setVisible(True)
+            self.populate_grid()
 
     def on_toggle_titles(self, checked: bool):
         self.vm.set_show_titles(checked)
