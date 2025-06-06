@@ -39,21 +39,19 @@ def launch_xenia_with_flags(game_path: str):
     if not xenia_exe or not Path(xenia_exe).exists():
         raise FileNotFoundError(f"Xenia executable not found: {xenia_exe}")
 
-    # GPU backend
-    renderer = config.get("gpu", "renderer", fallback="any")  # e.g. "Vulkan", "OpenGL", etc.
-    # VSync on/off
-    vsync_on = config.getboolean("gpu", "allow_variable_refresh", fallback=False)
-    # Internal resolution
-    resolution = config.get("canary_video", "internal_resolution", fallback="720p")
-    # Keyboard mode
-    keyboard_mode = config.get("input", "keyboard_mode", fallback="XInput")
+    # Choose config: user copy if exists, otherwise bundled template
+    user_toml = Path.home() / ".perch" / "xenia.config.toml"
+    if user_toml.exists():
+        toml_path = user_toml
+    else:
+        toml_path = Path(resource_path("xenia-canary.config.toml"))
 
-    # Build argument list: xenia path first, then game, then flags
-    args = [xenia_exe, str(game_path)]
-    args.append(f"--gpu={renderer}")
-    args.append(f"--vsync={'true' if vsync_on else 'false'}")
-    args.append(f"--res={resolution}")
-    args.append(f"--keyboard-mode={keyboard_mode}")
+    # Build argument list: xenia path, game, and --config flag only
+    args = [
+        xenia_exe,
+        str(game_path),
+        f"--config={toml_path}"
+    ]
 
     # Launch Xenia
     return subprocess.Popen(args)
