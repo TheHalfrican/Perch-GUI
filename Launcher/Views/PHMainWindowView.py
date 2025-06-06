@@ -316,7 +316,7 @@ class MainWindowView(QMainWindow):
 
     def add_game(self):
         paths, _ = QFileDialog.getOpenFileNames(
-            self, "Select Game Files", "", "Xbox 360 Files (*.iso *.xex *.elf);;All Files (*)"
+            self, "Select Game Files", "", "Xbox 360 Files (*.iso *.xex *.elf *.stfs);;All Files (*)"
         )
         if not paths:
             return
