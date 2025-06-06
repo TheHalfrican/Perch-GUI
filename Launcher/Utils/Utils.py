@@ -48,15 +48,12 @@ def launch_xenia_with_flags(game_path: str):
     # Keyboard mode
     keyboard_mode = config.get("input", "keyboard_mode", fallback="XInput")
 
-    # Build argument list
-    args = [xenia_exe]
+    # Build argument list: xenia path first, then game, then flags
+    args = [xenia_exe, str(game_path)]
     args.append(f"--gpu={renderer}")
     args.append(f"--vsync={'true' if vsync_on else 'false'}")
     args.append(f"--res={resolution}")
     args.append(f"--keyboard-mode={keyboard_mode}")
-
-    # Add the game path at the end
-    args.append(str(game_path))
 
     # Launch Xenia
     return subprocess.Popen(args)
