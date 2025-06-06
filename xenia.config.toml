@@ -17,8 +17,8 @@ protect_zero = false
 break_on_unimplemented = false
 
 [CanaryVideo]
-vsync_fps = "120"
-internal_resolution = "4K"
+vsync_fps = "off"
+internal_resolution = "720p"
 avpack = ""
 
 [CanaryHacks]

@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from Launcher.ViewModels.PHSettingsDialogViewModel import SettingsDialogViewModel
+import configparser
+from Launcher.Utils.Utils import get_user_config_path
 
 class SettingsDialog(QDialog):
     def __init__(self, parent=None):
@@ -227,59 +229,81 @@ class SettingsDialog(QDialog):
         self.load_settings()
 
     def load_settings(self):
-        # Load emulator path
-        self.emu_edit.setText(self.vm.emulator_path)
+        """
+        Load all settings from the user-writable INI file.
+        """
+        ini_path = get_user_config_path()
+        config = configparser.ConfigParser()
+        if ini_path.exists():
+            config.read(str(ini_path))
 
-        # Load scan folders
+        # --- Emulator Path ---
+        emu_path = config.get("paths", "xenia_path", fallback="")
+        self.emu_edit.setText(emu_path)
+
+        # --- Scan Folders ---
         self.folder_list.clear()
-        for f in self.vm.scan_folders:
-            self.folder_list.addItem(f)
+        folders = config.get("library", "scan_folders", fallback="")
+        for f in folders.split(";"):
+            if f:
+                self.folder_list.addItem(f)
 
-        # Load theme
-        idx = self.theme_combo.findText(self.vm.theme)
+        # --- Theme ---
+        theme = config.get("appearance", "theme", fallback="System Default")
+        idx = self.theme_combo.findText(theme)
         if idx >= 0:
             self.theme_combo.setCurrentIndex(idx)
 
-        # Load Emulator-specific settings
-        # Master Section
-        self.license_combo.setCurrentIndex(self.vm.license_mask)
-        # Find language string matching user_language
-        lang_index = self.language_combo.findText(
-            next((label for label in [self.language_combo.itemText(i) for i in range(self.language_combo.count())]
-                  if label.endswith(f"({self.vm.user_language})")), "")
-        )
-        if lang_index >= 0:
-            self.language_combo.setCurrentIndex(lang_index)
-        self.mount_cache_checkbox.setChecked(self.vm.mount_cache)
+        # --- Emulator Master ---
+        license_mask = config.getint("emulator_master", "license_mask", fallback=0)
+        self.license_combo.setCurrentIndex(license_mask)
+        user_language = config.getint("emulator_master", "user_language", fallback=1)
+        lang_label = next((label for label in [self.language_combo.itemText(i) for i in range(self.language_combo.count())]
+                           if label.endswith(f"({user_language})")), "")
+        if lang_label:
+            self.language_combo.setCurrentIndex(self.language_combo.findText(lang_label))
+        mount_cache = config.getboolean("emulator_master", "mount_cache", fallback=False)
+        self.mount_cache_checkbox.setChecked(mount_cache)
 
-        # GPU Section
-        idx_renderer = self.renderer_combo.findText(self.vm.renderer)
+        # --- GPU ---
+        renderer = config.get("gpu", "renderer", fallback="any")
+        idx_renderer = self.renderer_combo.findText(renderer)
         if idx_renderer >= 0:
             self.renderer_combo.setCurrentIndex(idx_renderer)
-        self.vsync_checkbox.setChecked(self.vm.allow_variable_refresh)
-        self.blackbars_checkbox.setChecked(self.vm.black_bars)
+        allow_vr = config.getboolean("gpu", "allow_variable_refresh", fallback=False)
+        self.vsync_checkbox.setChecked(allow_vr)
+        black_bars = config.getboolean("gpu", "black_bars", fallback=False)
+        self.blackbars_checkbox.setChecked(black_bars)
 
-        # Input Section
-        idx_kb_mode = self.keyboard_mode_combo.findText(self.vm.keyboard_mode)
+        # --- Input ---
+        keyboard_mode = config.get("input", "keyboard_mode", fallback="XInput")
+        idx_kb_mode = self.keyboard_mode_combo.findText(keyboard_mode)
         if idx_kb_mode >= 0:
             self.keyboard_mode_combo.setCurrentIndex(idx_kb_mode)
-        self.keyboard_slot_spin.setValue(self.vm.keyboard_slot)
+        keyboard_slot = config.getint("input", "keyboard_slot", fallback=0)
+        self.keyboard_slot_spin.setValue(keyboard_slot)
 
-        # Hacks Section
-        self.protect_zero_checkbox.setChecked(self.vm.protect_zero)
-        self.break_on_unimpl_checkbox.setChecked(self.vm.break_on_unimplemented)
+        # --- Hacks ---
+        protect_zero = config.getboolean("hacks", "protect_zero", fallback=False)
+        self.protect_zero_checkbox.setChecked(protect_zero)
+        break_unimpl = config.getboolean("hacks", "break_on_unimplemented", fallback=False)
+        self.break_on_unimpl_checkbox.setChecked(break_unimpl)
 
-        # Canary Video Section
-        idx_vsync_fps = self.vsync_fps_combo.findText(self.vm.vsync_fps)
+        # --- Canary Video ---
+        vsync_fps = config.get("canary_video", "vsync_fps", fallback="off")
+        idx_vsync_fps = self.vsync_fps_combo.findText(vsync_fps)
         if idx_vsync_fps >= 0:
             self.vsync_fps_combo.setCurrentIndex(idx_vsync_fps)
-        idx_res = self.resolution_combo.findText(self.vm.internal_resolution)
+        internal_res = config.get("canary_video", "internal_resolution", fallback="720p")
+        idx_res = self.resolution_combo.findText(internal_res)
         if idx_res >= 0:
             self.resolution_combo.setCurrentIndex(idx_res)
-        self.avpack_line.setText(self.vm.avpack)
+        avpack = config.get("canary_video", "avpack", fallback="")
+        self.avpack_line.setText(avpack)
 
-        # Canary Hacks Section
-        self.max_queued_spin.setValue(self.vm.max_queued_frames)
+        # --- Canary Hacks ---
+        max_frames = config.getint("canary_hacks", "max_queued_frames", fallback=1)
+        self.max_queued_spin.setValue(max_frames)
 
     def browse_emulator(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -301,18 +325,12 @@ class SettingsDialog(QDialog):
             self.folder_list.takeItem(self.folder_list.row(item))
 
     def save_settings(self):
-        # Save emulator path
+        # Update ViewModel with UI values
         self.vm.emulator_path = self.emu_edit.text()
-
-        # Save scan folders
         folders = [self.folder_list.item(i).text() for i in range(self.folder_list.count())]
         self.vm.scan_folders = folders
-
-        # Save theme
         self.vm.theme = self.theme_combo.currentText()
 
-        # Save Emulator-specific settings
-        # Master Section
         license_text = self.license_combo.currentText()
         license_val = int(license_text.split()[-1].strip("()"))
         self.vm.license_mask = license_val
@@ -320,29 +338,83 @@ class SettingsDialog(QDialog):
         language_text = self.language_combo.currentText()
         lang_val = int(language_text.split()[-1].strip("()"))
         self.vm.user_language = lang_val
-
         self.vm.mount_cache = self.mount_cache_checkbox.isChecked()
 
-        # GPU Section
         self.vm.renderer = self.renderer_combo.currentText()
         self.vm.allow_variable_refresh = self.vsync_checkbox.isChecked()
         self.vm.black_bars = self.blackbars_checkbox.isChecked()
 
-        # Input Section
         self.vm.keyboard_mode = self.keyboard_mode_combo.currentText()
         self.vm.keyboard_slot = self.keyboard_slot_spin.value()
 
-        # Hacks Section
         self.vm.protect_zero = self.protect_zero_checkbox.isChecked()
         self.vm.break_on_unimplemented = self.break_on_unimpl_checkbox.isChecked()
 
-        # Canary Video Section
         self.vm.vsync_fps = self.vsync_fps_combo.currentText()
         self.vm.internal_resolution = self.resolution_combo.currentText()
         self.vm.avpack = self.avpack_line.text()
 
-        # Canary Hacks Section
         self.vm.max_queued_frames = self.max_queued_spin.value()
+
+        # Now write all settings to the INI
+        ini_path = get_user_config_path()
+        config = configparser.ConfigParser()
+        # If file exists, load existing to preserve unrelated sections
+        if ini_path.exists():
+            config.read(str(ini_path))
+
+        # General section
+        config['paths'] = {
+            'xenia_path': self.vm.emulator_path
+        }
+        config['library'] = {
+            'scan_folders': ";".join(self.vm.scan_folders)
+        }
+        config['appearance'] = {
+            'theme': self.vm.theme
+        }
+
+        # Emulator Master section
+        config['emulator_master'] = {
+            'license_mask': str(self.vm.license_mask),
+            'user_language': str(self.vm.user_language),
+            'mount_cache': str(self.vm.mount_cache)
+        }
+
+        # GPU section
+        config['gpu'] = {
+            'renderer': self.vm.renderer,
+            'allow_variable_refresh': str(self.vm.allow_variable_refresh),
+            'black_bars': str(self.vm.black_bars)
+        }
+
+        # Input section
+        config['input'] = {
+            'keyboard_mode': self.vm.keyboard_mode,
+            'keyboard_slot': str(self.vm.keyboard_slot)
+        }
+
+        # Hacks section
+        config['hacks'] = {
+            'protect_zero': str(self.vm.protect_zero),
+            'break_on_unimplemented': str(self.vm.break_on_unimplemented)
+        }
+
+        # Canary Video section
+        config['canary_video'] = {
+            'vsync_fps': self.vm.vsync_fps,
+            'internal_resolution': self.vm.internal_resolution,
+            'avpack': self.vm.avpack
+        }
+
+        # Canary Hacks section
+        config['canary_hacks'] = {
+            'max_queued_frames': str(self.vm.max_queued_frames)
+        }
+
+        # Write back to the INI file
+        with open(ini_path, 'w') as f:
+            config.write(f)
 
     def accept(self):
         self.save_settings()

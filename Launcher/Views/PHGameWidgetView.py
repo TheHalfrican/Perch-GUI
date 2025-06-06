@@ -9,13 +9,13 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFileDialog, QMenu, 
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, Signal
 
-from Launcher.DB.PHDatabase import DB_PATH
 from Launcher.Utils.PHImages import get_placeholder_pixmap
+from Launcher.Utils.Utils import get_user_config_path
 from Launcher.Controllers.PHGameWidgetController import GameWidgetController
 
 # Load Xenia path from config.ini
 config = configparser.ConfigParser()
-config.read(Path(__file__).parents[2] / 'config.ini')
+config.read(str(get_user_config_path()))
 XENIA_PATH = Path(config.get('paths', 'xenia_path'))
 
 class GameWidgetView(QWidget):

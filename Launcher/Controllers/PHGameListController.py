@@ -2,15 +2,15 @@ import subprocess
 import os
 import sys
 import sqlite3
-from pathlib import Path
 from Launcher.DB.PHDatabase import DB_PATH
+from Launcher.Utils.Utils import get_user_config_path
 import configparser
 
 class GameListController:
     def __init__(self):
         # Load emulator path from config
         config = configparser.ConfigParser()
-        config.read(Path(__file__).parents[2] / 'config.ini')
+        config.read(str(get_user_config_path()))
         self.emulator_path = config.get('paths', 'xenia_path', fallback='')
 
     def fetch_games(self) -> list[tuple]:

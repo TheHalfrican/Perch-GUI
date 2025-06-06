@@ -2,13 +2,14 @@ import sqlite3
 import configparser
 from pathlib import Path
 from Launcher.DB.PHDatabase import DB_PATH
+from Launcher.Utils.Utils import get_user_config_path
 from Launcher.Models.PHGameModel import PHGameModel
 
 class GameLibraryViewModel:
     def __init__(self):
         # Load scan folders from config.ini
         config = configparser.ConfigParser()
-        config.read(Path(__file__).parents[2] / 'config.ini')
+        config.read(str(get_user_config_path()))
         folders = config.get('library', 'scan_folders', fallback='').split(';')
         self.scan_paths = [Path(p) for p in folders if p]
 
