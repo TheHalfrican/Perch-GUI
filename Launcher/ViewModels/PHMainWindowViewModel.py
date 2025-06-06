@@ -13,6 +13,11 @@ class MainWindowViewModel:
         self.config = configparser.ConfigParser()
         if self.config_path.exists():
             self.config.read(str(self.config_path))
+            # Load persisted theme (default to 'System Default')
+            if self.config.has_section('appearance'):
+                self.theme = self.config.get('appearance', 'theme', fallback='System Default')
+            else:
+                self.theme = 'System Default'
 
         # Load UI settings
         self.cover_width = self._load_cover_width()
