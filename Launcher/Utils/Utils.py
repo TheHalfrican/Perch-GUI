@@ -51,7 +51,7 @@ def launch_xenia_with_flags(game_path: str):
     # Build argument list
     args = [xenia_exe]
     args.append(f"--gpu={renderer}")
-    args.append(f"--vsync={'on' if vsync_on else 'off'}")
+    args.append(f"--vsync={'true' if vsync_on else 'false'}")
     args.append(f"--res={resolution}")
     args.append(f"--keyboard-mode={keyboard_mode}")
 
