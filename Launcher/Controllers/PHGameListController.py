@@ -28,9 +28,7 @@ class GameListController:
         return rows
 
     def launch_game(self, game_id: int):
-        
-       # Launch the given game ID via Xenia.
-        
+        """Launch the given game ID via Xenia with flags."""
         file_path = self._get_file_path(game_id)
         if file_path:
             try:

@@ -189,6 +189,8 @@ class MainWindowView(QMainWindow):
 
         # Create the list view container before populating
         self.list_view = GameListView(self)
+        # Provide controller to list view so it can launch games
+        self.list_view.controller = self.controller
         self.list_view.setVisible(False)
         main_layout.addWidget(self.list_view)
 
