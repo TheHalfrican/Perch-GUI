@@ -16,7 +16,12 @@ from Launcher.Controllers.PHGameWidgetController import GameWidgetController
 # Load Xenia path from config.ini
 config = configparser.ConfigParser()
 config.read(str(get_user_config_path()))
-XENIA_PATH = Path(config.get('paths', 'xenia_path'))
+# Safely get xenia_path; if no [paths] section, default to empty
+if config.has_section('paths'):
+    xenia_path_str = config.get('paths', 'xenia_path', fallback="")
+else:
+    xenia_path_str = ""
+XENIA_PATH = Path(xenia_path_str)
 
 class GameWidgetView(QWidget):
     clicked = Signal(object)
