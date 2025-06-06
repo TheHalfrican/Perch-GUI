@@ -271,7 +271,7 @@ class MainWindowView(QMainWindow):
         # Placeholder when no games
         text = self.search_bar.text().lower().strip()
         if not games:
-            msg = "No games match your search." if text else "No games found. Use File > Add Game..."
+            msg = "No games match your search." if text else "No games found. Use Settings > Scan Folders or File > Add Game..."
             label = QLabel(msg)
             label.setAlignment(Qt.AlignCenter)
             self.grid.addWidget(label, 0, 0)
