@@ -16,6 +16,7 @@ from Launcher.Views.PHGameListView import GameListView
 from Launcher.Views.PHSettingsDialogView import SettingsDialog
 from Launcher.Views.PHGamepadConfigView import GamepadConfigView
 from Launcher.Utils.PHAppearance import apply_theme
+from Launcher.Utils.Utils import resource_path
 from Launcher.Controllers.PHMainWindowController import MainWindowController
 
 class MainWindowView(QMainWindow):
@@ -118,7 +119,7 @@ class MainWindowView(QMainWindow):
         view_buttons_layout = QHBoxLayout()
         # Settings Button
         self.settings_button = QPushButton()
-        self.settings_button.setIcon(QIcon("Assets/settings_icon.png"))
+        self.settings_button.setIcon(QIcon(resource_path("Assets/settings_icon.png")))
         self.settings_button.setToolTip("Settings")
         self.settings_button.setFixedSize(48, 48)
         self.settings_button.setIconSize(QSize(48, 48))
@@ -126,7 +127,7 @@ class MainWindowView(QMainWindow):
         view_buttons_layout.addWidget(self.settings_button)
         # Controller Configuration Button
         self.controller_config_button = QPushButton()
-        self.controller_config_button.setIcon(QIcon("Assets/controller_config_icon.png"))
+        self.controller_config_button.setIcon(QIcon(resource_path("Assets/controller_config_icon.png")))
         self.controller_config_button.setToolTip("Controller Config")
         self.controller_config_button.setFixedSize(48, 48)
         self.controller_config_button.setIconSize(QSize(48, 48))
@@ -134,7 +135,7 @@ class MainWindowView(QMainWindow):
         view_buttons_layout.addWidget(self.controller_config_button)
         # Grid button
         self.grid_button = QPushButton()
-        self.grid_button.setIcon(QIcon('assets/grid_icon.png'))
+        self.grid_button.setIcon(QIcon(resource_path('assets/grid_icon.png')))
         self.grid_button.setToolTip("Grid View")
         self.grid_button.setFixedSize(48, 48)
         self.grid_button.setIconSize(QSize(48, 48))
@@ -142,7 +143,7 @@ class MainWindowView(QMainWindow):
         view_buttons_layout.addWidget(self.grid_button)
         # List button
         self.list_button = QPushButton()
-        self.list_button.setIcon(QIcon('assets/list_icon.png'))
+        self.list_button.setIcon(QIcon(resource_path('assets/list_icon.png')))
         self.list_button.setToolTip("List View")
         self.list_button.setFixedSize(48, 48)
         self.list_button.setIconSize(QSize(48, 48))
@@ -150,7 +151,7 @@ class MainWindowView(QMainWindow):
         view_buttons_layout.addWidget(self.list_button)
         # Game Titles toggle button
         self.title_toggle_button = QPushButton()
-        self.title_toggle_button.setIcon(QIcon('assets/tag_icon.png'))
+        self.title_toggle_button.setIcon(QIcon(resource_path('assets/tag_icon.png')))
         self.title_toggle_button.setToolTip("Toggle Game Titles")
         self.title_toggle_button.setFixedSize(48, 48)
         self.title_toggle_button.setIconSize(QSize(48, 48))
