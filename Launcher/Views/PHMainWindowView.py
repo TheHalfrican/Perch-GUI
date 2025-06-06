@@ -1,5 +1,4 @@
 # Launcher/Views/PHMainWindowView.py
-import configparser
 from pathlib import Path
 from PySide6.QtWidgets import (
     QMainWindow, QFileDialog, QScrollArea,
@@ -18,6 +17,7 @@ from Launcher.Views.PHGamepadConfigView import GamepadConfigView
 from Launcher.Utils.PHAppearance import apply_theme
 from Launcher.Utils.Utils import resource_path
 from Launcher.Controllers.PHMainWindowController import MainWindowController
+from Launcher.Controllers.PHGameListController import GameListController
 
 class MainWindowView(QMainWindow):
     def __init__(self):
@@ -189,8 +189,9 @@ class MainWindowView(QMainWindow):
 
         # Create the list view container before populating
         self.list_view = GameListView(self)
-        # Provide controller to list view so it can launch games
-        self.list_view.controller = self.controller
+        # Instantiate and assign the dedicated game list controller
+        self.game_list_controller = GameListController()
+        self.list_view.controller = self.game_list_controller
         self.list_view.setVisible(False)
         main_layout.addWidget(self.list_view)
 
