@@ -6,7 +6,7 @@ import subprocess
 import configparser
 from pathlib import Path
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFileDialog, QMenu, QMessageBox
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPixmap, QGuiApplication
 from PySide6.QtCore import Qt, Signal
 
 from Launcher.Utils.PHImages import get_placeholder_pixmap
@@ -60,11 +60,17 @@ class GameWidgetView(QWidget):
             pixmap = QPixmap(str(path))
         else:
             pixmap = get_placeholder_pixmap(self.cover_width, self.cover_height)
-        pixmap = pixmap.scaled(
-            self.cover_width, self.cover_height,
+        # Scale at device pixel ratio for crisp rendering
+        dpr = QGuiApplication.primaryScreen().devicePixelRatio()
+        target_width = int(self.cover_width * dpr)
+        target_height = int(self.cover_height * dpr)
+        high_res = pixmap.scaled(
+            target_width, target_height,
             Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
-        self.cover_label.setPixmap(pixmap)
+        high_res.setDevicePixelRatio(dpr)
+        # Set on label at logical size
+        self.cover_label.setPixmap(high_res)
         self.cover_label.setFixedSize(self.cover_width, self.cover_height)
         self.cover_path = path
 
