@@ -11,7 +11,7 @@ def get_placeholder_pixmap(width: int = 300, height: int = 450, title: str | Non
     painter.setPen(QColor("white"))
 
     # Padding
-    padding_x = int(width * 0.1)
+    padding_x = int(width * 0.05)
     padding_y = int(height * 0.1)
 
     if title:
@@ -29,7 +29,7 @@ def get_placeholder_pixmap(width: int = 300, height: int = 450, title: str | Non
         painter.setFont(instr_font)
         instr_text = "(Right-click to set Cover Art)"
         instr_rect = pixmap.rect().adjusted(padding_x, height//2, -padding_x, -padding_y)
-        painter.drawText(instr_rect, Qt.AlignCenter, instr_text)
+        painter.drawText(instr_rect, Qt.AlignCenter | Qt.TextWordWrap, instr_text)
     else:
         # Default instruction only
         font = QFont()
@@ -37,7 +37,7 @@ def get_placeholder_pixmap(width: int = 300, height: int = 450, title: str | Non
         font.setBold(True)
         painter.setFont(font)
         text_rect = pixmap.rect().adjusted(padding_x, padding_y, -padding_x, -padding_y)
-        painter.drawText(text_rect, Qt.AlignCenter, "Right-click to set\nCover Art")
+        painter.drawText(text_rect, Qt.AlignCenter | Qt.TextWordWrap, "Right-click to set\nCover Art")
 
     painter.end()
     return pixmap
