@@ -89,7 +89,7 @@ class GameListController:
         conn.commit()
         conn.close()
 
-    def _get_file_path(self, game_id: int) -> str:
+    def get_file_path(self, game_id: int) -> str:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("SELECT file_path FROM games WHERE id = ?", (game_id,))
