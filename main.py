@@ -1,12 +1,16 @@
 import sys
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
+from PySide6.QtCore import Qt
 from Launcher.DB.PHDatabase import initialize_db
 from Launcher.Utils.Utils import resource_path
 from Launcher.Views.PHMainWindowView import MainWindowView
 
 if __name__ == "__main__":
     initialize_db()
+    # Tell Qt to scale its UI and use high-res pixmaps on HiDPI monitors
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     app = QApplication(sys.argv)
     app.setApplicationName("Perch")
     app.setApplicationDisplayName("Perch")
