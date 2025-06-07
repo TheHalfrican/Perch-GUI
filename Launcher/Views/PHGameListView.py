@@ -1,3 +1,8 @@
+import sys
+import subprocess
+from pathlib import Path
+from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QUrl
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView,
     QMenu, QFileDialog, QMessageBox
@@ -105,7 +110,17 @@ class GameListView(QWidget):
             self.controller.launch_game(game_id)
 
         elif selected == show_action:
-            self.controller.reveal_in_file_browser(game_id)
+            # Reveal the game file in OS file browser
+            file_path = self.controller.get_file_path(game_id)
+            if not file_path:
+                return
+            fp = Path(file_path)
+            if sys.platform.startswith('darwin'):
+                subprocess.Popen(['open', str(fp.parent)])
+            elif sys.platform.startswith('win'):
+                subprocess.Popen(['explorer', '/select,', str(fp)])
+            else:
+                QDesktopServices.openUrl(QUrl.fromLocalFile(str(fp.parent)))
 
         elif selected == set_cover_action:
             img_path, _ = QFileDialog.getOpenFileName(

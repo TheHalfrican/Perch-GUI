@@ -1,13 +1,11 @@
 # Launcher/Views/PHGameWidgetView.py
-import os
 import sys
-import sqlite3
 import subprocess
 import configparser
 from pathlib import Path
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFileDialog, QMenu, QMessageBox
-from PySide6.QtGui import QPixmap, QGuiApplication
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QPixmap, QGuiApplication, QDesktopServices
+from PySide6.QtCore import Qt, Signal, QUrl
 
 from Launcher.Utils.PHImages import get_placeholder_pixmap
 from Launcher.Utils.Utils import get_user_config_path
@@ -88,7 +86,21 @@ class GameWidgetView(QWidget):
             self.controller.launch_game()
 
         elif selected == show_action:
-            self.controller.reveal_in_file_browser()
+            # Reveal the game file in the OS file browser
+            file_path = self.controller.get_file_path()
+            if not file_path:
+                return
+            fp = Path(file_path)
+            if sys.platform.startswith('darwin'):
+                # macOS: open folder
+                subprocess.Popen(['open', fp.parent])
+            elif sys.platform.startswith('win'):
+                # Windows: open Explorer and select file
+                subprocess.Popen(['explorer', '/select,', str(fp)])
+            else:
+                # Linux/other: open containing folder
+                
+                QDesktopServices.openUrl(QUrl.fromLocalFile(str(fp.parent)))
 
         elif selected == set_cover_action:
             img_path, _ = QFileDialog.getOpenFileName(
