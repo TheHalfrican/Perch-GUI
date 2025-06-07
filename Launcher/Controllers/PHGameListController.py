@@ -29,7 +29,7 @@ class GameListController:
 
     def launch_game(self, game_id: int):
         """Launch the given game ID via Xenia with flags."""
-        file_path = self._get_file_path(game_id)
+        file_path = self.get_file_path(game_id)
         if file_path:
             try:
                 launch_xenia_with_flags(file_path)
@@ -55,7 +55,7 @@ class GameListController:
         
        # Show the game file in Finder/Explorer/xdg-open depending on platform.
         
-        file_path = self._get_file_path(game_id)
+        file_path = self.get_file_path(game_id)
         if not file_path:
             return
 
