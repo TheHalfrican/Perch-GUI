@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView,
     QMenu, QFileDialog, QMessageBox
 )
-from PySide6.QtGui import QPixmap, QIcon
+from PySide6.QtGui import QPixmap, QIcon, QGuiApplication
 from PySide6.QtCore import Qt, QSize
 from Launcher.Controllers.PHGameListController import GameListController
 
@@ -58,9 +58,16 @@ class GameListView(QWidget):
             if cover_path and cover_path.strip():
                 pixmap = QPixmap(str(cover_path))
                 if not pixmap.isNull():
-                    icon = QIcon(pixmap.scaled(
-                        self.cover_size, Qt.KeepAspectRatio, Qt.SmoothTransformation
-                    ))
+                    # Scale at device pixel ratio for crisp rendering
+                    dpr = QGuiApplication.primaryScreen().devicePixelRatio()
+                    target_width = int(self.cover_size.width() * dpr)
+                    target_height = int(self.cover_size.height() * dpr)
+                    high_res = pixmap.scaled(
+                        target_width, target_height,
+                        Qt.KeepAspectRatio, Qt.SmoothTransformation
+                    )
+                    high_res.setDevicePixelRatio(dpr)
+                    icon = QIcon(high_res)
                 else:
                     icon = QIcon()
             else:
